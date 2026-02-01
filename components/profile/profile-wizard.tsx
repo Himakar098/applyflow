@@ -1,0 +1,228 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { CheckCircle2, FileUp, ListChecks, Loader2, ShieldCheck, TriangleAlert } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { getAuthHeader } from "@/lib/firebase/getIdToken";
+import { ProfileEditor } from "@/components/profile/profile-editor";
+
+type ProfileWizardProps = {
+  initialProfileText?: string;
+  onSaved?: (profile: unknown) => void;
+};
+
+type ProfileReadiness = {
+  ready: boolean;
+  missing: string[];
+};
+
+function evaluateReadiness(profile: Record<string, unknown>): ProfileReadiness {
+  const p = profile as any;
+  const missing: string[] = [];
+
+  const name = p?.contact?.name ?? p?.name;
+  const email = p?.contact?.email ?? p?.email;
+  const phone = p?.contact?.phone ?? p?.phone;
+  const skills = p?.skills;
+  const experience = p?.experience;
+
+  if (!name) missing.push("name");
+  if (!email && !phone) missing.push("email or phone");
+  if (!Array.isArray(skills) || skills.length === 0) missing.push("skills");
+  const hasExperience =
+    Array.isArray(experience) &&
+    experience.some((exp) => exp?.title && exp?.company);
+  if (!hasExperience) missing.push("experience (title + company)");
+
+  return { ready: missing.length === 0, missing };
+}
+
+export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizardProps) {
+  const { toast } = useToast();
+  const [file, setFile] = useState<File | null>(null);
+  const [profileText, setProfileText] = useState<string>(initialProfileText);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [resumeProgress, setResumeProgress] = useState(0);
+
+  const readiness = useMemo(() => {
+    try {
+      const parsed = JSON.parse(profileText || "{}");
+      return evaluateReadiness(parsed);
+    } catch {
+      return { ready: false, missing: ["valid JSON"] };
+    }
+  }, [profileText]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    setFile(selected ?? null);
+    setResumeProgress(selected ? 20 : 0);
+  };
+
+  const extractProfile = async () => {
+    if (!file) {
+      toast({ title: "Select a resume", description: "Upload PDF or DOCX.", variant: "destructive" });
+      return;
+    }
+    const headers = await getAuthHeader();
+    if (!headers) {
+      toast({ title: "Sign in required", description: "Please sign in again.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    setResumeProgress(40);
+    try {
+      const formData = new FormData();
+      formData.append("resume", file);
+      const res = await fetch("/api/profile/extract", {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Unable to extract profile");
+      }
+      setResumeProgress(90);
+      setProfileText(JSON.stringify(data.profileJson ?? {}, null, 2));
+      toast({ title: "Profile extracted", description: "Review and finalize edits." });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Extract failed";
+      toast({ title: "Extract failed", description: message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+      setResumeProgress(0);
+    }
+  };
+
+  const saveProfile = async () => {
+    const headers = await getAuthHeader();
+    if (!headers) {
+      toast({ title: "Sign in required", variant: "destructive" });
+      return;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(profileText || "{}");
+    } catch {
+      toast({ title: "Invalid JSON", description: "Fix JSON before saving.", variant: "destructive" });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/profile/save", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ profileJson: parsed }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Unable to save profile");
+      }
+      toast({ title: "Profile saved" });
+      onSaved?.(parsed);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Save failed";
+      toast({ title: "Save failed", description: message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+        <CardHeader>
+          <CardTitle>Profile wizard</CardTitle>
+          <CardDescription>Upload, extract, edit, and validate your profile.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <FileUp className="h-4 w-4 text-primary" />
+                Step 1 — Upload resume
+              </div>
+              <Label htmlFor="resume-upload">Resume (PDF or DOCX)</Label>
+              <input
+                id="resume-upload"
+                type="file"
+                accept=".pdf,.docx"
+                onChange={handleFileChange}
+                className="text-sm"
+              />
+              {resumeProgress > 0 ? (
+                <Progress value={resumeProgress} className="h-2" />
+              ) : null}
+              <Button onClick={extractProfile} disabled={loading} className="mt-2">
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Extract profile
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                Steps 3 & 4 — Edit and validate
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Once extracted, edit the JSON and save. We’ll check readiness before tailoring.
+              </p>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <ListChecks className="h-4 w-4 text-primary" />
+              Readiness checklist
+              {readiness.ready ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Ready to tailor
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
+                  <TriangleAlert className="h-4 w-4" />
+                  Not ready
+                </span>
+              )}
+            </div>
+            <ul className="space-y-1 text-sm">
+              {["name", "email or phone", "skills", "experience (title + company)"].map((item) => {
+                const missing = readiness.missing.includes(item);
+                return (
+                  <li
+                    key={item}
+                    className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+                  >
+                    {missing ? (
+                      <TriangleAlert className="h-4 w-4 text-amber-600" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    )}
+                    <span className={missing ? "text-amber-700" : "text-emerald-700"}>
+                      {item}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+          <ProfileEditor value={profileText} onChange={setProfileText} />
+          <div className="flex justify-end">
+            <Button onClick={saveProfile} disabled={saving}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Save profile
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
