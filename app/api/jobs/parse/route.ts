@@ -1,13 +1,12 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
 
-import { extractProfile } from "@/lib/ai/openai";
+import { refineParsedJD } from "@/lib/ai/jd-parse";
 import { HttpError, verifyIdToken } from "@/lib/auth/verify-id-token";
-import { adminDb } from "@/lib/firebase/admin";
-import { extractResumeText } from "@/lib/resume/extract-text";
+import { heuristicParseJD } from "@/lib/jobs/jd-parse";
 import { hashIp, writeLog } from "@/lib/services/ai-logger";
 import { checkAndIncrementUsage } from "@/lib/services/usage-limits";
+import { adminDb } from "@/lib/firebase/admin";
 
 export const runtime = "nodejs";
 
@@ -19,7 +18,7 @@ function handleError(error: unknown, digest: string) {
     );
   }
 
-  console.error("api/profile/extract", digest, error);
+  console.error("api/jobs/parse", digest, error);
   return NextResponse.json(
     { ok: false, error: "internal_error", digest },
     { status: 500 },
@@ -31,30 +30,29 @@ export async function POST(req: NextRequest) {
   const started = Date.now();
 
   try {
-    const { uid, decoded } = await verifyIdToken(req);
+    const { uid } = await verifyIdToken(req);
+    const body = await req.json().catch(() => null);
+    const jobText = body?.jobText?.toString() ?? "";
 
-    const formData = await req.formData();
-    const file = formData.get("resume");
-    if (!(file instanceof File)) {
-      throw new HttpError(400, "Missing resume file");
-    }
+    if (!jobText) throw new HttpError(400, "jobText is required");
+    if (jobText.length > 12000) throw new HttpError(400, "jobText too long (max 12000 chars)");
 
     const usageCheck = await checkAndIncrementUsage({
       uid,
-      kind: "resume_extract",
+      kind: "jd_parse",
       increment: 1,
       adminDb,
     });
-
     if (!usageCheck.allowed) {
       await writeLog(uid, {
-        type: "resume_extract",
+        type: "jd_parse",
         status: "blocked",
         digest,
         errorCode: "DAILY_LIMIT_REACHED",
         errorMessage: usageCheck.limitType,
         latencyMs: Date.now() - started,
         ipHash: hashIp(req),
+        meta: { limitType: usageCheck.limitType, dateKey: usageCheck.dateKey },
       });
       return NextResponse.json(
         { ok: false, error: "DAILY_LIMIT_REACHED", limitType: usageCheck.limitType, digest },
@@ -62,43 +60,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const resumeText = await extractResumeText(file);
-    const { profileJson, usage, model } = await extractProfile(resumeText);
-
-    const userRef = adminDb.collection("users").doc(uid);
-    await userRef.set(
-      {
-        email: decoded?.email ?? null,
-        createdAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
-
-    await userRef.collection("profile").doc("current").set(
-      {
-        profileJson,
-        resumeText,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
+    const heuristic = heuristicParseJD(jobText);
+    let parsed = heuristic;
+    try {
+      parsed = await refineParsedJD({ jobText, heuristic });
+    } catch {
+      parsed = heuristic;
+    }
 
     await writeLog(uid, {
-      type: "resume_extract",
+      type: "jd_parse",
       status: "success",
       digest,
-      model: model ?? usage?.model,
-      promptTokens: usage?.promptTokens,
-      completionTokens: usage?.completionTokens,
-      totalTokens: usage?.totalTokens,
       latencyMs: Date.now() - started,
       ipHash: hashIp(req),
+      meta: {
+        jdLength: jobText.length,
+        keywords: parsed.keywords.length,
+        techStack: parsed.techStack.length,
+      },
     });
 
-    return NextResponse.json({ ok: true, profileJson, digest });
+    return NextResponse.json(
+      { ok: true, ...parsed, digest },
+      { status: 200 },
+    );
   } catch (error) {
     await writeLog((await verifyIdToken(req).catch(() => ({ uid: "unknown" }))).uid, {
-      type: "resume_extract",
+      type: "jd_parse",
       status: "error",
       digest,
       latencyMs: Date.now() - started,

@@ -77,9 +77,9 @@ export default function ResumePage() {
         <div className="lg:col-span-2">
           <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
             <CardHeader>
-              <CardTitle>AI insight preview</CardTitle>
+              <CardTitle>Extracted text preview</CardTitle>
               <CardDescription>
-                We parse text now, and plug in OpenAI (or Azure OpenAI) later.
+                We parse resume text on upload. Future AI optimizations will build on this.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -94,11 +94,11 @@ export default function ResumePage() {
                 >
                   <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                     <Sparkles className="h-4 w-4" />
-                    Parsed text (stub)
+                    Extracted text
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {latestResume.parsedText
-                      ? `${latestResume.parsedText.slice(0, 250)}...`
+                      ? `${latestResume.parsedText.slice(0, 4000)}`
                       : "Upload a resume to capture text for future AI tailoring."}
                   </p>
                 </motion.div>

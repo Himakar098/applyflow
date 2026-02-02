@@ -51,6 +51,7 @@ const jobSchema = z.object({
   status: z.enum(statuses),
   appliedDate: z.string().optional(),
   notes: z.string().optional(),
+  jobDescription: z.string().optional(),
 });
 
 type JobFormValues = z.infer<typeof jobSchema>;
@@ -78,6 +79,7 @@ export function JobForm({
       status: "applied",
       appliedDate: new Date().toISOString().slice(0, 10),
       notes: "",
+      jobDescription: "",
       ...defaultValues,
     },
   });
@@ -92,6 +94,7 @@ export function JobForm({
         status: (defaultValues.status as JobStatus) ?? "applied",
         appliedDate: defaultValues.appliedDate ?? "",
         notes: defaultValues.notes ?? "",
+        jobDescription: defaultValues.jobDescription ?? "",
       });
     }
   }, [defaultValues, form]);
@@ -109,6 +112,7 @@ export function JobForm({
         status: "applied",
         appliedDate: new Date().toISOString().slice(0, 10),
         notes: "",
+        jobDescription: "",
       });
     }
   };
@@ -253,6 +257,25 @@ export function JobForm({
             )}
           />
         </div>
+        <FormField
+          control={form.control}
+          name="jobDescription"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Job description (paste JD)</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Paste the JD or notes here..."
+                  className="resize-none"
+                  rows={4}
+                  {...field}
+                  disabled={submitting}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <div className="flex items-center justify-end gap-3">
           {onCancel ? (
             <Button

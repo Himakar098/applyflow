@@ -14,6 +14,10 @@ function validateBody(body: unknown): {
   company: string;
   jobDescription: string;
   output: OutputShape;
+  style?: string;
+  tone?: string;
+  focusKeywords?: string[];
+  keywords?: string[];
 } {
   const data = (body ?? {}) as Record<string, unknown>;
   const genId = (data.genId as string | undefined)?.toString().trim() || undefined;
@@ -22,6 +26,14 @@ function validateBody(body: unknown): {
   const jobDescription =
     (data.jobDescription as string | undefined)?.toString().trim() ?? "";
   const output = data.output as OutputShape | undefined;
+  const style = (data.style as string | undefined)?.toString().trim();
+  const tone = (data.tone as string | undefined)?.toString().trim();
+  const focusKeywords = Array.isArray(data.focusKeywords)
+    ? (data.focusKeywords as unknown[]).map((k) => k?.toString().trim() || "").filter(Boolean)
+    : undefined;
+  const keywords = Array.isArray(data.keywords)
+    ? (data.keywords as unknown[]).map((k) => k?.toString().trim() || "").filter(Boolean)
+    : undefined;
 
   if (!jobTitle || !company) {
     throw new HttpError(400, "jobTitle and company are required");
@@ -33,7 +45,7 @@ function validateBody(body: unknown): {
     );
   }
 
-  return { genId, jobTitle, company, jobDescription, output };
+  return { genId, jobTitle, company, jobDescription, output, style, tone, focusKeywords, keywords };
 }
 
 function handleError(error: unknown, digest: string) {
@@ -57,7 +69,17 @@ export async function POST(req: NextRequest) {
   try {
     const { uid } = await verifyIdToken(req);
     const body = await req.json().catch(() => null);
-    const { genId, jobTitle, company, jobDescription, output } =
+    const {
+      genId,
+      jobTitle,
+      company,
+      jobDescription,
+      output,
+      style,
+      tone,
+      focusKeywords,
+      keywords,
+    } =
       validateBody(body);
 
     const genRef = genId
@@ -72,6 +94,10 @@ export async function POST(req: NextRequest) {
         jobTitle,
         company,
         jobDescription,
+        style,
+        tone,
+        focusKeywords,
+        keywords,
         output,
         updatedAt: now,
         createdAt: snapshot.exists ? snapshot.data()?.createdAt ?? now : now,

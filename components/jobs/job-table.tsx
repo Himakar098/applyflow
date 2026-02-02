@@ -1,4 +1,5 @@
-import { EllipsisVertical, Pencil, Trash } from "lucide-react";
+import Link from "next/link";
+import { EllipsisVertical, ExternalLink, Pencil, Sparkles, Trash } from "lucide-react";
 
 import { StatusBadge } from "@/components/jobs/status-badge";
 import { Badge } from "@/components/ui/badge";
@@ -106,6 +107,18 @@ export function JobTable({ jobs, onEdit, onDelete }: JobTableProps) {
                     <DropdownMenuItem onClick={() => onEdit(job)}>
                       <Pencil className="mr-2 h-4 w-4" />
                       Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/dashboard/jobs/${job.id}`} className="flex items-center">
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Workspace
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/tailor?jobId=${job.id}`} className="flex items-center">
+                        <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                        Tailor
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onDelete(job)}>
                       <Trash className="mr-2 h-4 w-4 text-destructive" />

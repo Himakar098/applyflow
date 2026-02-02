@@ -6,8 +6,9 @@ import { Loader2, UploadCloud } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { parseResumeText } from "@/lib/ai/resume";
+import { extractResumeText } from "@/lib/ai/resume";
 import { saveResumeRecord } from "@/app/actions/resumes";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { storage } from "@/lib/firebase/client";
@@ -20,6 +21,9 @@ type ResumeUploaderProps = {
 export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [extractState, setExtractState] = useState<"idle" | "extracting" | "extracted" | "failed">("idle");
+  const [extractedText, setExtractedText] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
   const { user, token, refreshToken } = useAuth();
 
@@ -37,6 +41,15 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
       return;
     }
 
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Max file size is 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!user) {
       toast({
         title: "Session required",
@@ -47,21 +60,30 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
     }
 
     try {
+      setSelectedFile(file);
+      setExtractState("extracting");
       setUploading(true);
+      const extracted = await extractResumeText(file);
+      if (!extracted) {
+        setExtractState("failed");
+        throw new Error("Failed to extract text");
+      }
+      setExtractedText(extracted);
+      setExtractState("extracted");
+
       const currentToken = token ?? (await refreshToken());
       const storagePath = `users/${user.uid}/resumes/${Date.now()}-${file.name}`;
       const storageRef = ref(storage, storagePath);
 
       await uploadBytes(storageRef, file);
       const downloadUrl = await getDownloadURL(storageRef);
-      const parsedText = await parseResumeText(file);
 
       const record = await saveResumeRecord(currentToken, {
         fileName: file.name,
         downloadUrl,
         status: "uploaded",
         uploadedAt: new Date().toISOString(),
-        parsedText,
+        parsedText: extracted,
       });
 
       onUploaded(record);
@@ -81,6 +103,22 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+    }
+  };
+
+  const reExtract = async () => {
+    if (!selectedFile) return;
+    try {
+      setExtractState("extracting");
+      const text = await extractResumeText(selectedFile);
+      if (!text) throw new Error("Failed to extract text");
+      setExtractedText(text);
+      setExtractState("extracted");
+      toast({ title: "Re-extracted", description: "Updated preview from PDF." });
+    } catch (error) {
+      console.error(error);
+      setExtractState("failed");
+      toast({ title: "Extract failed", description: "Try again with a valid PDF.", variant: "destructive" });
     }
   };
 
@@ -105,7 +143,7 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
           <input
             ref={fileInputRef}
             type="file"
-            accept="application/pdf"
+            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             onChange={handleFileChange}
             className="hidden"
           />
@@ -132,6 +170,33 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
               Browse files
             </Button>
           </div>
+        </div>
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>
+              Status:{" "}
+              {extractState === "idle"
+                ? "Idle"
+                : extractState === "extracting"
+                  ? "Extracting..."
+                  : extractState === "extracted"
+                    ? "Extracted"
+                    : "Failed"}
+            </span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" disabled={!selectedFile || uploading} onClick={() => fileInputRef.current?.click()}>
+                Change file
+              </Button>
+              <Button size="sm" variant="ghost" disabled={!selectedFile || extractState === "extracting"} onClick={reExtract}>
+                Re-extract
+              </Button>
+            </div>
+          </div>
+          <Textarea
+            readOnly
+            className="min-h-[180px] text-sm"
+            value={extractedText ? extractedText.slice(0, 4000) : "No preview yet. Upload a PDF to extract text."}
+          />
         </div>
       </CardContent>
     </Card>

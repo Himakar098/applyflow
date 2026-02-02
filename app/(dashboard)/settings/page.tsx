@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 
+import { DocumentVault } from "@/components/settings/document-vault";
+import { ProfileBuilder } from "@/components/settings/profile-builder";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,63 +14,97 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { getProfile, updateProfile } from "@/app/actions/profile";
 import { useAuth } from "@/lib/auth/auth-provider";
+import { getAuthHeader } from "@/lib/firebase/getIdToken";
 import type { Profile } from "@/lib/types";
 
-const schema = z.object({
-  fullName: z.string().min(2, "Enter your name"),
-  preferredTitles: z.string().optional(),
-  preferredLocations: z.string().optional(),
-  visaStatus: z.string().min(1, "Select a status"),
+const emptyProfile = (): Profile => ({
+  fullName: "",
+  email: "",
+  visaStatus: "",
+  targetRoles: [],
+  preferredLocations: [],
+  yearsExperienceApprox: undefined,
+  skills: { languages: [], tools: [], cloud: [], databases: [] },
+  workExperience: [],
+  projects: [],
+  education: [],
+  certifications: [],
+  hobbies: [],
+  preferredTitles: [],
 });
 
-type FormValues = z.infer<typeof schema>;
+function normalizeProfile(data?: Partial<Profile>): Profile {
+  const base = emptyProfile();
+  const skills = data?.skills ?? base.skills;
+  return {
+    ...base,
+    ...data,
+    skills: {
+      languages: skills.languages ?? [],
+      tools: skills.tools ?? [],
+      cloud: skills.cloud ?? [],
+      databases: skills.databases ?? [],
+    },
+    targetRoles: data?.targetRoles ?? base.targetRoles,
+    preferredLocations: data?.preferredLocations ?? base.preferredLocations,
+    workExperience: data?.workExperience ?? base.workExperience,
+    projects: data?.projects ?? base.projects,
+    education: data?.education ?? base.education,
+    certifications: data?.certifications ?? base.certifications,
+    hobbies: data?.hobbies ?? base.hobbies,
+    preferredTitles: data?.preferredTitles ?? base.preferredTitles,
+  };
+}
+
+function computeReadiness(profile: Profile) {
+  const checks = {
+    roles: profile.targetRoles.length > 0,
+    locations: profile.preferredLocations.length > 0,
+    projects: profile.projects.length >= 2,
+    experience: profile.workExperience.length >= 1,
+    skills:
+      [profile.skills.languages, profile.skills.tools, profile.skills.cloud, profile.skills.databases].filter(
+        (arr) => arr && arr.length > 0,
+      ).length >= 2,
+  };
+  const total = Object.keys(checks).length;
+  const passed = Object.values(checks).filter(Boolean).length;
+  const missing: string[] = [];
+  if (!checks.roles) missing.push("Add target roles");
+  if (!checks.locations) missing.push("Add preferred locations");
+  if (!checks.projects) missing.push("Add at least 2 projects");
+  if (!checks.experience) missing.push("Add at least 1 work experience");
+  if (!checks.skills) missing.push("Add skills in two categories");
+  return { score: Math.round((passed / total) * 100), missing };
+}
 
 export default function SettingsPage() {
-  const { token, refreshToken, user } = useAuth();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<Profile>(emptyProfile());
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      fullName: "",
-      preferredTitles: "",
-      preferredLocations: "",
-      visaStatus: "Not set",
-    },
-  });
+  const readiness = useMemo(() => computeReadiness(profile), [profile]);
 
   const loadProfile = async () => {
     try {
-      const idToken = token ?? (await refreshToken());
-      if (!idToken) return;
-      const profile = await getProfile(idToken, user?.email);
-      form.reset({
-        fullName: profile.fullName,
-        preferredTitles: profile.preferredTitles.join(", "),
-        preferredLocations: profile.preferredLocations.join(", "),
-        visaStatus: profile.visaStatus || "Not set",
-      });
+      const headers = await getAuthHeader();
+      if (!headers) return;
+      const res = await fetch("/api/profile/current", { headers });
+      if (res.status === 404) {
+        setProfile(emptyProfile());
+        return;
+      }
+      if (!res.ok) {
+        throw new Error("Unable to load profile");
+      }
+      const data = (await res.json()) as { profileJson?: Profile };
+      setProfile(normalizeProfile(data.profileJson));
     } catch (error) {
       console.error(error);
       toast({
@@ -85,26 +119,30 @@ export default function SettingsPage() {
 
   useEffect(() => {
     void loadProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onSubmit = async (values: FormValues) => {
+  const saveProfile = async () => {
     try {
-      const idToken = token ?? (await refreshToken());
-      if (!idToken) return;
-      const payload: Partial<Profile> = {
-        fullName: values.fullName,
-        preferredTitles: values.preferredTitles
-          ? values.preferredTitles.split(",").map((t) => t.trim()).filter(Boolean)
-          : [],
-        preferredLocations: values.preferredLocations
-          ? values.preferredLocations.split(",").map((l) => l.trim()).filter(Boolean)
-          : [],
-        visaStatus: values.visaStatus,
-        email: user?.email ?? undefined,
-      };
-      await updateProfile(idToken, payload);
-      toast({ title: "Profile updated" });
+      setSaving(true);
+      const headers = await getAuthHeader();
+      if (!headers) {
+        toast({
+          title: "Session required",
+          description: "Sign in to save your profile.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const res = await fetch("/api/profile/save", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ profileJson: { ...profile, email: user?.email ?? profile.email } }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || "Unable to save profile");
+      }
+      toast({ title: "Profile saved", description: "Your profile builder details are up to date." });
     } catch (error) {
       console.error(error);
       toast({
@@ -112,6 +150,8 @@ export default function SettingsPage() {
         description: "Try again later.",
         variant: "destructive",
       });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -121,112 +161,63 @@ export default function SettingsPage() {
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
           Settings
         </p>
-        <h2 className="text-2xl font-semibold text-foreground">Profile & preferences</h2>
+        <h2 className="text-2xl font-semibold text-foreground">Profile builder</h2>
         <p className="text-sm text-muted-foreground">
-          Your information powers tailored job recommendations and follow-ups.
+          Build your profile manually or alongside resume extraction. No fake defaults—only what you enter.
         </p>
       </div>
 
-      <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>Keep your candidate details organized.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-10 w-full rounded-md" />
-              <Skeleton className="h-10 w-full rounded-md" />
-              <Skeleton className="h-10 w-full rounded-md" />
+      <div className="grid gap-4 lg:grid-cols-[2fr,1fr]">
+        {loading ? (
+          <Skeleton className="h-[600px] w-full rounded-xl" />
+        ) : (
+          <ProfileBuilder profile={profile} onChange={setProfile} />
+        )}
+
+        <Card className="h-fit border-0 bg-white shadow-sm shadow-slate-900/5">
+          <CardHeader>
+            <CardTitle>Profile readiness</CardTitle>
+            <CardDescription>Checklist used to boost generation quality.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Progress value={readiness.score} />
+              <p className="text-sm text-muted-foreground">
+                Score: <span className="font-semibold text-foreground">{readiness.score}</span>/100
+              </p>
             </div>
-          ) : (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="fullName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Alex Rivera" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="preferredTitles"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preferred job titles</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Product Manager, Senior Designer"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="preferredLocations"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preferred locations</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Remote, San Francisco, Sydney" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="visaStatus"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Visa status</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Not set">Not set</SelectItem>
-                          <SelectItem value="Citizen / PR">Citizen / PR</SelectItem>
-                          <SelectItem value="Work visa">Work visa</SelectItem>
-                          <SelectItem value="Visa sponsorship">Visa sponsorship</SelectItem>
-                          <SelectItem value="Student visa">Student visa</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-fit" disabled={form.formState.isSubmitting}>
-                  {form.formState.isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save preferences"
-                  )}
-                </Button>
-              </form>
-            </Form>
-          )}
-        </CardContent>
-      </Card>
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">Missing items</p>
+              {readiness.missing.length === 0 ? (
+                <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">
+                  Ready to tailor
+                </Badge>
+              ) : (
+                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                  {readiness.missing.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <Button className="w-full" onClick={saveProfile} disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save profile"
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Saved under <code>users/&lt;uid&gt;/profile/current</code>. This powers tailoring even without a resume.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <DocumentVault className="border-0 bg-white shadow-sm shadow-slate-900/5" />
     </div>
   );
 }

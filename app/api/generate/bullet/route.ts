@@ -1,15 +1,15 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
 
-import { extractProfile } from "@/lib/ai/openai";
+import { rewriteBullet } from "@/lib/ai/openai";
 import { HttpError, verifyIdToken } from "@/lib/auth/verify-id-token";
 import { adminDb } from "@/lib/firebase/admin";
-import { extractResumeText } from "@/lib/resume/extract-text";
 import { hashIp, writeLog } from "@/lib/services/ai-logger";
 import { checkAndIncrementUsage } from "@/lib/services/usage-limits";
 
 export const runtime = "nodejs";
+
+type BulletAction = "tighten" | "add_metric" | "ats" | "leadership";
 
 function handleError(error: unknown, digest: string) {
   if (error instanceof HttpError) {
@@ -19,7 +19,7 @@ function handleError(error: unknown, digest: string) {
     );
   }
 
-  console.error("api/profile/extract", digest, error);
+  console.error("api/generate/bullet", digest, error);
   return NextResponse.json(
     { ok: false, error: "internal_error", digest },
     { status: 500 },
@@ -31,30 +31,40 @@ export async function POST(req: NextRequest) {
   const started = Date.now();
 
   try {
-    const { uid, decoded } = await verifyIdToken(req);
+    const { uid } = await verifyIdToken(req);
+    const body = await req.json().catch(() => null);
 
-    const formData = await req.formData();
-    const file = formData.get("resume");
-    if (!(file instanceof File)) {
-      throw new HttpError(400, "Missing resume file");
+    const action = body?.action as BulletAction | undefined;
+    const bullet = body?.bullet?.toString();
+    const jobKeywords = Array.isArray(body?.jobKeywords)
+      ? (body.jobKeywords as unknown[]).map((k) => k?.toString() ?? "").filter(Boolean)
+      : [];
+    const profileJson = body?.profileJson;
+
+    if (!action || !bullet) {
+      throw new HttpError(400, "action and bullet are required");
+    }
+    if (!["tighten", "add_metric", "ats", "leadership"].includes(action)) {
+      throw new HttpError(400, "Invalid action");
     }
 
     const usageCheck = await checkAndIncrementUsage({
       uid,
-      kind: "resume_extract",
+      kind: "bullet_rewrite",
       increment: 1,
       adminDb,
     });
 
     if (!usageCheck.allowed) {
       await writeLog(uid, {
-        type: "resume_extract",
+        type: "bullet_rewrite",
         status: "blocked",
         digest,
         errorCode: "DAILY_LIMIT_REACHED",
         errorMessage: usageCheck.limitType,
         latencyMs: Date.now() - started,
         ipHash: hashIp(req),
+        meta: { limitType: usageCheck.limitType, dateKey: usageCheck.dateKey },
       });
       return NextResponse.json(
         { ok: false, error: "DAILY_LIMIT_REACHED", limitType: usageCheck.limitType, digest },
@@ -62,43 +72,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const resumeText = await extractResumeText(file);
-    const { profileJson, usage, model } = await extractProfile(resumeText);
-
-    const userRef = adminDb.collection("users").doc(uid);
-    await userRef.set(
-      {
-        email: decoded?.email ?? null,
-        createdAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
-
-    await userRef.collection("profile").doc("current").set(
-      {
-        profileJson,
-        resumeText,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
-
-    await writeLog(uid, {
-      type: "resume_extract",
-      status: "success",
-      digest,
-      model: model ?? usage?.model,
-      promptTokens: usage?.promptTokens,
-      completionTokens: usage?.completionTokens,
-      totalTokens: usage?.totalTokens,
-      latencyMs: Date.now() - started,
-      ipHash: hashIp(req),
+    const result = await rewriteBullet({
+      action,
+      bullet,
+      jobKeywords,
+      profileJson,
     });
 
-    return NextResponse.json({ ok: true, profileJson, digest });
+    await writeLog(uid, {
+      type: "bullet_rewrite",
+      status: "success",
+      digest,
+      model: result.model ?? result.usage?.model ?? undefined,
+      promptTokens: result.usage?.promptTokens,
+      completionTokens: result.usage?.completionTokens,
+      totalTokens: result.usage?.totalTokens,
+      latencyMs: Date.now() - started,
+      ipHash: hashIp(req),
+      meta: { action, keywordCount: jobKeywords.length },
+    });
+
+    return NextResponse.json({ ok: true, bullet: result.bullet, digest }, { status: 200 });
   } catch (error) {
-    await writeLog((await verifyIdToken(req).catch(() => ({ uid: "unknown" }))).uid, {
-      type: "resume_extract",
+    let uid = "unknown";
+    try {
+      uid = (await verifyIdToken(req)).uid;
+    } catch {
+      // ignore
+    }
+    await writeLog(uid, {
+      type: "bullet_rewrite",
       status: "error",
       digest,
       latencyMs: Date.now() - started,

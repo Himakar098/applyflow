@@ -118,7 +118,7 @@ export default function RegisterPage() {
                   <FormLabel>Full name</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Alex Rivera"
+                      placeholder="Full name"
                       autoComplete="name"
                       disabled={isSubmitting}
                       {...field}

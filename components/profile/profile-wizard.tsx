@@ -19,27 +19,62 @@ type ProfileWizardProps = {
 type ProfileReadiness = {
   ready: boolean;
   missing: string[];
+  score: number;
 };
 
 function evaluateReadiness(profile: Record<string, unknown>): ProfileReadiness {
   const p = profile as any;
   const missing: string[] = [];
+  let score = 0;
 
   const name = p?.contact?.name ?? p?.name;
   const email = p?.contact?.email ?? p?.email;
   const phone = p?.contact?.phone ?? p?.phone;
+  const targetRoles = Array.isArray(p?.targetRoles) ? p.targetRoles : [];
+  const projects = Array.isArray(p?.projects) ? p.projects : [];
+  const workExperience = Array.isArray(p?.workExperience)
+    ? p.workExperience
+    : Array.isArray(p?.experience)
+      ? p.experience
+      : [];
   const skills = p?.skills;
-  const experience = p?.experience;
 
   if (!name) missing.push("name");
+  else score += 10;
   if (!email && !phone) missing.push("email or phone");
-  if (!Array.isArray(skills) || skills.length === 0) missing.push("skills");
-  const hasExperience =
-    Array.isArray(experience) &&
-    experience.some((exp) => exp?.title && exp?.company);
-  if (!hasExperience) missing.push("experience (title + company)");
+  else score += 10;
+  if (!targetRoles.length) missing.push("target roles");
+  else score += 20;
 
-  return { ready: missing.length === 0, missing };
+  if (projects.length < 2) {
+    missing.push("at least 2 projects");
+  } else {
+    score += 20;
+  }
+
+  const hasExperience =
+    Array.isArray(workExperience) &&
+    workExperience.some((exp) => exp?.role || exp?.title);
+  if (!hasExperience) {
+    missing.push("work experience");
+  } else {
+    score += 20;
+  }
+
+  const hasSkillsObject =
+    skills &&
+    typeof skills === "object" &&
+    (skills.languages?.length ||
+      skills.tools?.length ||
+      skills.cloud?.length ||
+      skills.databases?.length);
+  if (!hasSkillsObject) {
+    missing.push("skills (grouped)");
+  } else {
+    score += 20;
+  }
+
+  return { ready: missing.length === 0, missing, score };
 }
 
 export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizardProps) {
@@ -55,9 +90,57 @@ export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizar
       const parsed = JSON.parse(profileText || "{}");
       return evaluateReadiness(parsed);
     } catch {
-      return { ready: false, missing: ["valid JSON"] };
+      return { ready: false, missing: ["valid JSON"], score: 0 };
     }
   }, [profileText]);
+
+  const fillFromExtract = () => {
+    try {
+      const parsed = JSON.parse(profileText || "{}") as any;
+      const enriched = { ...parsed };
+
+      if (!Array.isArray(enriched.targetRoles)) {
+        const headline = (enriched.headline || "").toString();
+        enriched.targetRoles = headline ? [headline] : [];
+      }
+
+      if (!Array.isArray(enriched.preferredLocations)) {
+        enriched.preferredLocations = enriched.contact?.location ? [enriched.contact.location] : [];
+      }
+
+      if (!enriched.yearsExperienceApprox && Array.isArray(enriched.workExperience)) {
+        enriched.yearsExperienceApprox = enriched.workExperience.length;
+      }
+
+      if (!enriched.skills || typeof enriched.skills !== "object") {
+        if (Array.isArray(enriched.skills)) {
+          enriched.skills = { tools: enriched.skills, languages: [], cloud: [], databases: [] };
+        } else {
+          enriched.skills = { tools: [], languages: [], cloud: [], databases: [] };
+        }
+      }
+
+      if (!Array.isArray(enriched.workExperience) && Array.isArray(enriched.experience)) {
+        enriched.workExperience = enriched.experience.map((exp: any) => ({
+          company: exp.company,
+          role: exp.title,
+          startDate: exp.startDate,
+          endDate: exp.endDate,
+          bullets: exp.achievements ?? [],
+          tools: exp.tools ?? [],
+        }));
+      }
+
+      if (!Array.isArray(enriched.projects)) {
+        enriched.projects = [];
+      }
+
+      setProfileText(JSON.stringify(enriched, null, 2));
+      toast({ title: "Filled missing fields", description: "Seeded from resume extract." });
+    } catch {
+      toast({ title: "Invalid JSON", description: "Fix JSON before auto-filling.", variant: "destructive" });
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -192,9 +275,13 @@ export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizar
                   Not ready
                 </span>
               )}
+              <span className="ml-auto text-xs text-muted-foreground">Score: {readiness.score}/100</span>
+              <Button size="sm" variant="outline" onClick={fillFromExtract}>
+                Fill from resume extract
+              </Button>
             </div>
             <ul className="space-y-1 text-sm">
-              {["name", "email or phone", "skills", "experience (title + company)"].map((item) => {
+              {["name", "email or phone", "target roles", "at least 2 projects", "work experience", "skills (grouped)"].map((item) => {
                 const missing = readiness.missing.includes(item);
                 return (
                   <li

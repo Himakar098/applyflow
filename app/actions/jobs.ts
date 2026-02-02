@@ -15,6 +15,7 @@ function serializeJob(
     location: data.location,
     source: data.source,
     status: data.status,
+    jobDescription: data.jobDescription,
     appliedDate: data.appliedDate,
     notes: data.notes,
     createdAt: data.createdAt,
@@ -48,6 +49,7 @@ export async function createJob(
     .collection("jobs")
     .add({
       ...payload,
+      jobDescription: payload.jobDescription ?? "",
       createdAt: now,
       updatedAt: now,
     });
@@ -72,6 +74,7 @@ export async function updateJob(
 
   await docRef.update({
     ...payload,
+    jobDescription: payload.jobDescription ?? "",
     updatedAt: now,
   });
 

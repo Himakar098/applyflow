@@ -14,7 +14,7 @@ function handleError(error: unknown, digest: string) {
     );
   }
 
-  console.error("api/generations", digest, error);
+  console.error("api/generations/by-job", digest, error);
   return NextResponse.json(
     { ok: false, error: "internal_error", digest },
     { status: 500 },
@@ -23,38 +23,32 @@ function handleError(error: unknown, digest: string) {
 
 export async function GET(req: NextRequest) {
   const digest = randomUUID();
-
   try {
     const { uid } = await verifyIdToken(req);
+    const { searchParams } = new URL(req.url);
+    const jobId = searchParams.get("jobId");
+    if (!jobId) {
+      throw new HttpError(400, "jobId is required");
+    }
 
     const snapshot = await adminDb
       .collection("users")
       .doc(uid)
       .collection("generations")
+      .where("jobId", "==", jobId)
       .orderBy("createdAt", "desc")
-      .limit(10)
+      .limit(1)
       .get();
 
-    const items = snapshot.docs.map((doc) => {
-      const data = doc.data() || {};
-      return {
-        id: doc.id,
-        jobTitle: data.jobTitle,
-        company: data.company,
-        jobDescription: data.jobDescription,
-        jobId: data.jobId,
-        output: data.output,
-        style: data.style,
-        tone: data.tone,
-        keywords: data.keywords,
-        focusKeywords: data.focusKeywords,
-        createdAt: data.createdAt?.toDate
-          ? data.createdAt.toDate().toISOString()
-          : null,
-      };
-    });
+    const doc = snapshot.docs[0];
+    const item = doc
+      ? {
+          id: doc.id,
+          ...doc.data(),
+        }
+      : null;
 
-    return NextResponse.json({ ok: true, items, digest }, { status: 200 });
+    return NextResponse.json({ ok: true, item, digest }, { status: 200 });
   } catch (error) {
     return handleError(error, digest);
   }

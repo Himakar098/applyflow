@@ -5,9 +5,10 @@ Modern, ATS-safe job application workspace built with Next.js 14 (App Router), T
 ## Features
 - Firebase Auth (email/password + Google), protected routes, auth context.
 - Dashboard overview with status cards and recent activity.
-- Job Tracker with CRUD, filters, status badges, and metrics.
-- Resume Manager with PDF uploads to Firebase Storage, parsed text stub for future AI optimization.
-- Settings for profile, preferred titles/locations, and visa status.
+- Job Tracker with CRUD, filters, status badges, JD field, metrics, deep-link to Tailor + Job Workspace.
+- Resume Manager with PDF uploads to Firebase Storage and server-side text extraction (human-readable preview, 10MB limit).
+- Tailor Copilot with JD parsing, keyword chips, per-bullet editor, history/regenerate/compare, and export pack.
+- Profile Builder (manual) with readiness checklist + Document Vault (transcripts/degrees/certifications to Storage + Firestore metadata).
 - Polished UI with shadcn/ui, Lucide icons, Tailwind, and subtle Framer Motion animation.
 
 ## Getting Started
@@ -50,6 +51,7 @@ App runs at http://localhost:3000.
 
 ## Notes
 - Server actions use Firebase Admin; client calls pass the Firebase ID token from the Auth context.
-- Resume parsing is a stub (file text slice) to keep the API surface ready for AI-based optimizations.
-- UI components are built with shadcn/ui and a premium, ATS-safe styling system.***
+- Resume extraction runs server-side via `/api/resume/extract` (Node runtime, 10MB limit, sanitized text, 12k char cap).
+- Document uploads live at `users/{uid}/documents/*` with metadata in Firestore `users/{uid}/documents`.
+- UI components are built with shadcn/ui and a premium, ATS-safe styling system.
 # applyflow

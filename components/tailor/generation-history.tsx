@@ -5,13 +5,19 @@ import { Clock3, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
 
 export type GenerationItem = {
   id: string;
   jobTitle: string;
   company: string;
   jobDescription: string;
-  output?: { resumeBullets: string[]; coverLetter: string };
+  output?: { resumeBullets: string[]; coverLetter: string; keywordsUsed?: string[]; matchNotes?: string[] };
+  keywords?: string[];
+  style?: string;
+  tone?: string;
+  focusKeywords?: string[];
   createdAt?: string | null;
 };
 
@@ -21,6 +27,10 @@ type Props = {
   onSelect: (item: GenerationItem) => void;
   onRefresh?: () => void;
   onRegenerate?: (item: GenerationItem) => void;
+  onCompare?: (item: GenerationItem) => void;
+  onDuplicate?: (item: GenerationItem) => void;
+  currentBullets?: string[];
+  currentCoverLetter?: string;
 };
 
 export function GenerationHistory({
@@ -29,7 +39,42 @@ export function GenerationHistory({
   onSelect,
   onRefresh,
   onRegenerate,
+  onCompare,
+  onDuplicate,
+  currentBullets = [],
+  currentCoverLetter = "",
 }: Props) {
+  const [compareItem, setCompareItem] = useState<GenerationItem | null>(null);
+
+  const renderDiff = (oldArr: string[], newArr: string[]) => {
+    const maxLen = Math.max(oldArr.length, newArr.length);
+    const rows: string[] = [];
+    for (let i = 0; i < maxLen; i++) {
+      const oldVal = oldArr[i];
+      const newVal = newArr[i];
+      if (oldVal === undefined && newVal !== undefined) {
+        rows.push(`+ ${newVal}`);
+      } else if (newVal === undefined && oldVal !== undefined) {
+        rows.push(`- ${oldVal}`);
+      } else if (oldVal === newVal) {
+        rows.push(`  ${oldVal}`);
+      } else {
+        rows.push(`- ${oldVal}`);
+        rows.push(`+ ${newVal}`);
+      }
+    }
+    return rows.join("\n");
+  };
+
+  const bulletDiff = renderDiff(
+    compareItem?.output?.resumeBullets ?? [],
+    currentBullets ?? [],
+  );
+  const coverDiff = renderDiff(
+    (compareItem?.output?.coverLetter || "").split("\n"),
+    (currentCoverLetter || "").split("\n"),
+  );
+
   return (
     <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -73,7 +118,7 @@ export function GenerationHistory({
                       : "Pending"}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="ghost" onClick={() => onSelect(item)}>
                     Load
                   </Button>
@@ -86,11 +131,58 @@ export function GenerationHistory({
                       Regenerate
                     </Button>
                   ) : null}
+                  {onCompare ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setCompareItem(item);
+                        onCompare(item);
+                      }}
+                    >
+                      Compare
+                    </Button>
+                  ) : null}
+                  {onDuplicate ? (
+                    <Button size="sm" variant="outline" onClick={() => onDuplicate(item)}>
+                      Duplicate
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             ))}
           </div>
         )}
+        {compareItem ? (
+          <div className="rounded-lg border bg-muted/40 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-semibold">
+                Compare vs current — {compareItem.jobTitle} @ {compareItem.company}
+              </p>
+              <Button size="sm" variant="ghost" onClick={() => setCompareItem(null)}>
+                Close
+              </Button>
+            </div>
+            <div className="grid gap-3 lg:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold">Bullets diff</p>
+                <Textarea
+                  readOnly
+                  className="min-h-[180px] font-mono text-xs whitespace-pre"
+                  value={bulletDiff}
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold">Cover letter diff</p>
+                <Textarea
+                  readOnly
+                  className="min-h-[180px] font-mono text-xs whitespace-pre"
+                  value={coverDiff}
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

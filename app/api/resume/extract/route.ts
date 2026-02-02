@@ -1,8 +1,5 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
-
-import { extractProfile } from "@/lib/ai/openai";
 import { HttpError, verifyIdToken } from "@/lib/auth/verify-id-token";
 import { adminDb } from "@/lib/firebase/admin";
 import { extractResumeText } from "@/lib/resume/extract-text";
@@ -19,7 +16,7 @@ function handleError(error: unknown, digest: string) {
     );
   }
 
-  console.error("api/profile/extract", digest, error);
+  console.error("api/resume/extract", digest, error);
   return NextResponse.json(
     { ok: false, error: "internal_error", digest },
     { status: 500 },
@@ -31,12 +28,12 @@ export async function POST(req: NextRequest) {
   const started = Date.now();
 
   try {
-    const { uid, decoded } = await verifyIdToken(req);
-
+    const { uid } = await verifyIdToken(req);
     const formData = await req.formData();
-    const file = formData.get("resume");
-    if (!(file instanceof File)) {
-      throw new HttpError(400, "Missing resume file");
+    const file = formData.get("file");
+
+    if (!file || !(file instanceof File)) {
+      throw new HttpError(400, "File is required");
     }
 
     const usageCheck = await checkAndIncrementUsage({
@@ -62,40 +59,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const resumeText = await extractResumeText(file);
-    const { profileJson, usage, model } = await extractProfile(resumeText);
-
-    const userRef = adminDb.collection("users").doc(uid);
-    await userRef.set(
-      {
-        email: decoded?.email ?? null,
-        createdAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
-
-    await userRef.collection("profile").doc("current").set(
-      {
-        profileJson,
-        resumeText,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
+    const normalized = await extractResumeText(file);
 
     await writeLog(uid, {
       type: "resume_extract",
       status: "success",
       digest,
-      model: model ?? usage?.model,
-      promptTokens: usage?.promptTokens,
-      completionTokens: usage?.completionTokens,
-      totalTokens: usage?.totalTokens,
       latencyMs: Date.now() - started,
       ipHash: hashIp(req),
+      meta: { textLength: normalized.length },
     });
 
-    return NextResponse.json({ ok: true, profileJson, digest });
+    return NextResponse.json(
+      { ok: true, text: normalized, digest },
+      { status: 200 },
+    );
   } catch (error) {
     await writeLog((await verifyIdToken(req).catch(() => ({ uid: "unknown" }))).uid, {
       type: "resume_extract",
