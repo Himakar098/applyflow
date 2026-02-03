@@ -37,6 +37,7 @@ export default function TailorPage() {
   const [importedJobId, setImportedJobId] = useState<string | null>(null);
   const [importedJobLabel, setImportedJobLabel] = useState<string | null>(null);
   const [ignoredJobId, setIgnoredJobId] = useState<string | null>(null);
+  const [aiEnabled, setAiEnabled] = useState(true);
 
   const fetchHistory = async () => {
     setLoadingHistory(true);
@@ -86,7 +87,21 @@ export default function TailorPage() {
         // ignore
       }
     };
+    const loadAiStatus = async () => {
+      try {
+        const headers = await getAuthHeader();
+        if (!headers) return;
+        const res = await fetch("/api/ai/status", { headers });
+        if (res.ok) {
+          const data = await res.json();
+          setAiEnabled(Boolean(data.enabled));
+        }
+      } catch {
+        // ignore
+      }
+    };
     void loadProfile();
+    void loadAiStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -164,7 +179,11 @@ export default function TailorPage() {
       void fetchHistory();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Regeneration failed";
-      toast({ title: "Regeneration failed", description: message, variant: "destructive" });
+      const description =
+        message === "AI_NOT_CONFIGURED"
+          ? "AI features are disabled until an OpenAI key is configured."
+          : message;
+      toast({ title: "Regeneration failed", description, variant: "destructive" });
     }
   };
 
@@ -191,6 +210,16 @@ export default function TailorPage() {
           <CardDescription>
             Paste or import a JD, generate/edit outputs, save versions, and manage history.
           </CardDescription>
+          {!aiEnabled ? (
+            <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              AI features are disabled until an OpenAI key is configured. You can still save and edit outputs manually.
+            </div>
+          ) : null}
+          {!profileJson ? (
+            <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              No profile detected. Build your profile in Settings for higher-quality tailoring.
+            </div>
+          ) : null}
           {importedJobId ? (
             <div className="flex items-center gap-2">
               <Badge variant="outline">Imported from Job Tracker</Badge>
@@ -234,6 +263,7 @@ export default function TailorPage() {
             jobId={importedJobId}
             profileJson={profileJson}
             profileText={profileText}
+            aiEnabled={aiEnabled}
             onHistoryLoad={fetchHistory}
           />
           <GenerationHistory

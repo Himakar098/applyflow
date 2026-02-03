@@ -7,14 +7,17 @@ import {
   Files,
   LayoutDashboard,
   Menu,
+  Search,
   Settings,
   Sparkles,
+  Target,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -25,6 +28,8 @@ const links = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Resume Manager", href: "/resume", icon: Files },
   { label: "Job Tracker", href: "/jobs", icon: Briefcase },
+  { label: "Recommendations", href: "/recommendations", icon: Target },
+  { label: "Search", href: "/search", icon: Search },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -100,6 +105,9 @@ export function Sidebar() {
           <SheetContent side="left" className="w-72">
             <SheetHeader>
               <SheetTitle>Navigation</SheetTitle>
+              <SheetDescription className="sr-only">
+                Mobile navigation drawer for ApplyFlow.
+              </SheetDescription>
             </SheetHeader>
             <div className="mt-6">
               <NavLinks />

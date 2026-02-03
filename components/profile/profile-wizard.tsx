@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, FileUp, ListChecks, Loader2, ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -84,6 +84,24 @@ export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizar
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [resumeProgress, setResumeProgress] = useState(0);
+  const [aiEnabled, setAiEnabled] = useState(true);
+
+  useEffect(() => {
+    const loadAiStatus = async () => {
+      try {
+        const headers = await getAuthHeader();
+        if (!headers) return;
+        const res = await fetch("/api/ai/status", { headers });
+        if (res.ok) {
+          const data = await res.json();
+          setAiEnabled(Boolean(data.enabled));
+        }
+      } catch {
+        // ignore
+      }
+    };
+    void loadAiStatus();
+  }, []);
 
   const readiness = useMemo(() => {
     try {
@@ -153,6 +171,14 @@ export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizar
       toast({ title: "Select a resume", description: "Upload PDF or DOCX.", variant: "destructive" });
       return;
     }
+    if (!aiEnabled) {
+      toast({
+        title: "AI not configured",
+        description: "Ask an admin to set OPENAI_API_KEY to enable extraction.",
+        variant: "destructive",
+      });
+      return;
+    }
     const headers = await getAuthHeader();
     if (!headers) {
       toast({ title: "Sign in required", description: "Please sign in again.", variant: "destructive" });
@@ -177,7 +203,13 @@ export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizar
       toast({ title: "Profile extracted", description: "Review and finalize edits." });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Extract failed";
-      toast({ title: "Extract failed", description: message, variant: "destructive" });
+      const description =
+        message === "AI_NOT_CONFIGURED"
+          ? "AI features are disabled until an OpenAI key is configured."
+          : message === "RESUME_EXTRACT_FAILED"
+            ? "We couldn’t read text from this file. Try a text-based PDF (not scanned images)."
+            : message;
+      toast({ title: "Extract failed", description, variant: "destructive" });
     } finally {
       setLoading(false);
       setResumeProgress(0);
@@ -228,6 +260,11 @@ export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizar
           <CardDescription>Upload, extract, edit, and validate your profile.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          {!aiEnabled ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              AI extraction is disabled until an OpenAI key is configured. You can still build your profile manually.
+            </div>
+          ) : null}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium">
@@ -245,7 +282,7 @@ export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizar
               {resumeProgress > 0 ? (
                 <Progress value={resumeProgress} className="h-2" />
               ) : null}
-              <Button onClick={extractProfile} disabled={loading} className="mt-2">
+              <Button onClick={extractProfile} disabled={loading || !aiEnabled} className="mt-2">
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Extract profile
               </Button>

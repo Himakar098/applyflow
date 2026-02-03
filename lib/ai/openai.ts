@@ -43,30 +43,42 @@ async function repairJsonToSchema(
   schemaHint: string,
 ): Promise<Record<string, unknown> | null> {
   if (!openaiClient) return null;
-  const completion = await openaiClient.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are a JSON repair bot. Return ONLY valid JSON matching the expected schema. No prose.",
-      },
-      {
-        role: "user",
-        content: `Fix this JSON and ensure it matches: ${schemaHint}\n\n${broken}`,
-      },
-    ],
-    response_format: { type: "json_object" },
-  });
+  try {
+    const completion = await openaiClient.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a JSON repair bot. Return ONLY valid JSON matching the expected schema. No prose.",
+        },
+        {
+          role: "user",
+          content: `Fix this JSON and ensure it matches: ${schemaHint}\n\n${broken}`,
+        },
+      ],
+      response_format: { type: "json_object" },
+    });
 
-  const fixed = completion.choices[0]?.message?.content ?? "";
-  return safeParseJson(fixed);
+    const fixed = completion.choices[0]?.message?.content ?? "";
+    return safeParseJson(fixed);
+  } catch (error) {
+    handleOpenAIError(error);
+  }
 }
 
 function ensureClient() {
   if (!openaiClient) {
-    throw new HttpError(500, "OpenAI API key is not configured");
+    throw new HttpError(503, "AI_NOT_CONFIGURED");
   }
+}
+
+function handleOpenAIError(error: unknown): never {
+  const err = error as { status?: number; code?: string };
+  if (err?.status === 401 || err?.code === "invalid_api_key") {
+    throw new HttpError(503, "AI_NOT_CONFIGURED");
+  }
+  throw error as Error;
 }
 
 function dedupeStrings(values: string[], limit: number) {
@@ -119,6 +131,10 @@ async function extractKeywords(jobDescription: string): Promise<string[]> {
       .safeParse(repaired);
     if (repairedValidated.success) return repairedValidated.data.keywords;
   } catch (error) {
+    const err = error as { status?: number; code?: string };
+    if (err?.status === 401 || err?.code === "invalid_api_key") {
+      throw new HttpError(503, "AI_NOT_CONFIGURED");
+    }
     console.error("keyword extraction failed, using heuristic", error);
   }
 
@@ -145,53 +161,58 @@ export async function extractProfile(resumeText: string): Promise<{
 }> {
   ensureClient();
 
-  const completion = await openaiClient!.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content:
-          [
-            "You are an ATS-safe resume parser. Extract ONLY what exists in the text. Do NOT fabricate employers, dates, or metrics.",
-            "Return a structured profile JSON with keys:",
-            "- contact: { name, email, phone, location }",
-            "- targetRoles: string[]",
-            "- preferredLocations: string[]",
-            "- yearsExperienceApprox: number",
-            "- skills: { languages:[], tools:[], cloud:[], databases:[] }",
-            "- workExperience: array of { company, role, startDate, endDate, bullets:[], tools:[] }",
-            "- projects: array of { title, stack:[], impact: string, bullets:[] }",
-            "- experience (legacy): array of {company, title, startDate, endDate, achievements: []}",
-            "- education, certifications, headline, summary",
-            "Use null or empty arrays when data is missing.",
-          ].join("\n"),
-      },
-      {
-        role: "user",
-        content: `Resume text (max 60k chars):\n${resumeText.slice(0, 60000)}`,
-      },
-    ],
-    response_format: { type: "json_object" },
-    max_tokens: 900,
-  });
+  let completion;
+  try {
+    completion = await openaiClient!.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            [
+              "You are an ATS-safe resume parser. Extract ONLY what exists in the text. Do NOT fabricate employers, dates, or metrics.",
+              "Return a structured profile JSON with keys:",
+              "- contact: { name, email, phone, location }",
+              "- targetRoles: string[]",
+              "- preferredLocations: string[]",
+              "- yearsExperienceApprox: number",
+              "- skills: { languages:[], tools:[], cloud:[], databases:[] }",
+              "- workExperience: array of { company, role, startDate, endDate, bullets:[], tools:[] }",
+              "- projects: array of { title, stack:[], impact: string, bullets:[] }",
+              "- experience (legacy): array of {company, title, startDate, endDate, achievements: []}",
+              "- education, certifications, headline, summary",
+              "Use null or empty arrays when data is missing.",
+            ].join("\n"),
+        },
+        {
+          role: "user",
+          content: `Resume text (max 60k chars):\n${resumeText.slice(0, 60000)}`,
+        },
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 900,
+    });
+  } catch (error) {
+    handleOpenAIError(error);
+  }
 
-  const raw = completion.choices[0]?.message?.content ?? "{}";
+  const raw = completion!.choices[0]?.message?.content ?? "{}";
   const parsed = safeParseJson<ProfileJson>(raw);
 
   const usage = {
-    promptTokens: completion.usage?.prompt_tokens ?? undefined,
-    completionTokens: completion.usage?.completion_tokens ?? undefined,
-    totalTokens: completion.usage?.total_tokens ?? undefined,
-    model: completion.model ?? null,
+    promptTokens: completion!.usage?.prompt_tokens ?? undefined,
+    completionTokens: completion!.usage?.completion_tokens ?? undefined,
+    totalTokens: completion!.usage?.total_tokens ?? undefined,
+    model: completion!.model ?? null,
   };
 
-  if (parsed) return { profileJson: parsed, usage, model: completion.model ?? null };
+  if (parsed) return { profileJson: parsed, usage, model: completion!.model ?? null };
 
   const repaired = await repairJsonToSchema(
     raw,
     "contact, headline, skills, experience, education, certifications, projects",
   );
-  if (repaired) return { profileJson: repaired, usage, model: completion.model ?? null };
+  if (repaired) return { profileJson: repaired, usage, model: completion!.model ?? null };
 
   throw new HttpError(500, "Unable to parse profile JSON");
 }
@@ -246,39 +267,44 @@ export async function generateTailoredPack(options: GenerateOptions): Promise<{
   const schemaHint =
     '{"resumeBullets": string[], "coverLetter": string, "keywordsUsed": string[], "matchNotes": string[]}';
 
-  const completion = await openaiClient!.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are an ATS-safe career assistant. Use ONLY provided profile data; do NOT invent employers, dates, or metrics. Return JSON ONLY.",
-      },
-      {
-        role: "user",
-        content: [
-          `Profile JSON: ${JSON.stringify(profileJson).slice(0, 60000)}`,
-          `Job Title: ${jobTitle}`,
-          `Company: ${company}`,
-          `Job Description: ${jobDescription.slice(0, 12000)}`,
-          `Style: ${style} -> ${STYLE_GUIDANCE[style]}`,
-          `Tone: ${tone} -> ${TONE_GUIDANCE[tone]}`,
-          `Target keywords (15-25): ${keywords.join(", ")}`,
-          `Focus keywords (must keep if present): ${sanitizedFocus.join(", ") || "none"}`,
-          "Constraints:",
-          "- 6-10 resume bullets, ATS-safe, truthful, avoid fabricated metrics.",
-          "- Cover letter 180-260 words, concise, no fake claims.",
-          "- keywordsUsed must be a subset of target keywords.",
-          "- matchNotes: 5-8 short bullets mapping profile strengths to JD needs.",
-          `Return JSON exactly matching: ${schemaHint}`,
-        ].join("\n"),
-      },
-    ],
-    response_format: { type: "json_object" },
-    max_tokens: 1200,
-  });
+  let completion;
+  try {
+    completion = await openaiClient!.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an ATS-safe career assistant. Use ONLY provided profile data; do NOT invent employers, dates, or metrics. Return JSON ONLY.",
+        },
+        {
+          role: "user",
+          content: [
+            `Profile JSON: ${JSON.stringify(profileJson).slice(0, 60000)}`,
+            `Job Title: ${jobTitle}`,
+            `Company: ${company}`,
+            `Job Description: ${jobDescription.slice(0, 12000)}`,
+            `Style: ${style} -> ${STYLE_GUIDANCE[style]}`,
+            `Tone: ${tone} -> ${TONE_GUIDANCE[tone]}`,
+            `Target keywords (15-25): ${keywords.join(", ")}`,
+            `Focus keywords (must keep if present): ${sanitizedFocus.join(", ") || "none"}`,
+            "Constraints:",
+            "- 6-10 resume bullets, ATS-safe, truthful, avoid fabricated metrics.",
+            "- Cover letter 180-260 words, concise, no fake claims.",
+            "- keywordsUsed must be a subset of target keywords.",
+            "- matchNotes: 5-8 short bullets mapping profile strengths to JD needs.",
+            `Return JSON exactly matching: ${schemaHint}`,
+          ].join("\n"),
+        },
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 1200,
+    });
+  } catch (error) {
+    handleOpenAIError(error);
+  }
 
-  const raw = completion.choices[0]?.message?.content ?? "{}";
+  const raw = completion!.choices[0]?.message?.content ?? "{}";
 
   const validatePack = (candidate: unknown): TailoredPack | null => {
     const parsed = TailoredPackSchema.safeParse(candidate);
@@ -298,12 +324,12 @@ export async function generateTailoredPack(options: GenerateOptions): Promise<{
       },
       keywords,
       usage: {
-        model: completion.model ?? "unknown",
-        promptTokens: completion.usage?.prompt_tokens ?? 0,
-        completionTokens: completion.usage?.completion_tokens ?? 0,
-        totalTokens: completion.usage?.total_tokens ?? 0,
+        model: completion!.model ?? "unknown",
+        promptTokens: completion!.usage?.prompt_tokens ?? 0,
+        completionTokens: completion!.usage?.completion_tokens ?? 0,
+        totalTokens: completion!.usage?.total_tokens ?? 0,
       },
-      model: completion.model ?? undefined,
+      model: completion!.model ?? undefined,
     };
   }
 
@@ -320,39 +346,113 @@ export async function generateTailoredPack(options: GenerateOptions): Promise<{
       },
       keywords,
       usage: {
-        model: completion.model ?? "unknown",
-        promptTokens: completion.usage?.prompt_tokens ?? 0,
-        completionTokens: completion.usage?.completion_tokens ?? 0,
-        totalTokens: completion.usage?.total_tokens ?? 0,
+        model: completion!.model ?? "unknown",
+        promptTokens: completion!.usage?.prompt_tokens ?? 0,
+        completionTokens: completion!.usage?.completion_tokens ?? 0,
+        totalTokens: completion!.usage?.total_tokens ?? 0,
       },
-      model: completion.model ?? undefined,
+      model: completion!.model ?? undefined,
     };
   }
 
   throw new HttpError(500, "model_output_invalid");
 }
 
+export async function refineMatchReasons(params: {
+  job: {
+    title: string;
+    company: string;
+    location?: string;
+    description?: string;
+  };
+  profile: {
+    targetRoles: string[];
+    preferredLocations: string[];
+    preferredWorkModes?: string[];
+    preferredSeniority?: string[];
+    skills: {
+      languages: string[];
+      tools: string[];
+      cloud: string[];
+      databases: string[];
+    };
+    projects: { title: string; stack: string[]; impact?: string }[];
+    workExperience: { company: string; role: string; tools?: string[] }[];
+  };
+  reasons: string[];
+}): Promise<{ reasons: string[]; usage?: { model: string; promptTokens: number; completionTokens: number; totalTokens: number }; model?: string }> {
+  ensureClient();
+  let completion;
+  try {
+    completion = await openaiClient!.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a career copilot. Improve the match explanation. Return ONLY JSON {\"reasons\": string[]} with 3-5 short bullets. No fabricated claims.",
+        },
+        {
+          role: "user",
+          content: [
+            `Job: ${JSON.stringify(params.job)}`,
+            `Profile: ${JSON.stringify(params.profile)}`,
+            `Current reasons: ${JSON.stringify(params.reasons)}`,
+          ].join("\n"),
+        },
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 300,
+    });
+  } catch (error) {
+    handleOpenAIError(error);
+  }
+
+  const raw = completion!.choices[0]?.message?.content ?? "{}";
+  const parsed = safeParseJson<{ reasons?: string[] }>(raw);
+  const reasons =
+    parsed?.reasons && Array.isArray(parsed.reasons)
+      ? parsed.reasons.filter(Boolean).slice(0, 5)
+      : params.reasons;
+
+  return {
+    reasons,
+    usage: {
+      model: completion!.model ?? "gpt-4o-mini",
+      promptTokens: completion!.usage?.prompt_tokens ?? 0,
+      completionTokens: completion!.usage?.completion_tokens ?? 0,
+      totalTokens: completion!.usage?.total_tokens ?? 0,
+    },
+    model: completion!.model ?? "gpt-4o-mini",
+  };
+}
+
 export async function parseJobDescription(jobDescription: string): Promise<JobParseResult> {
   ensureClient();
 
-  const completion = await openaiClient!.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content:
-          "Extract a clean summary of the job description. Return JSON only: {roleTitleGuess, companyGuess, keywords[], requirements:{mustHave[],niceToHave[]}, techStack[]}. Do not add prose.",
-      },
-      {
-        role: "user",
-        content: jobDescription.slice(0, 12000),
-      },
-    ],
-    response_format: { type: "json_object" },
-    max_tokens: 600,
-  });
+  let completion;
+  try {
+    completion = await openaiClient!.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "Extract a clean summary of the job description. Return JSON only: {roleTitleGuess, companyGuess, keywords[], requirements:{mustHave[],niceToHave[]}, techStack[]}. Do not add prose.",
+        },
+        {
+          role: "user",
+          content: jobDescription.slice(0, 12000),
+        },
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 600,
+    });
+  } catch (error) {
+    handleOpenAIError(error);
+  }
 
-  const raw = completion.choices[0]?.message?.content ?? "{}";
+  const raw = completion!.choices[0]?.message?.content ?? "{}";
   const parsed = safeParseJson(raw);
   const validated = JobParseSchema.safeParse(parsed);
   if (validated.success) return validated.data;
@@ -386,35 +486,40 @@ export async function tuneBullet(options: {
     leadership: "Highlight ownership, stakeholders, and impact while staying truthful.",
   };
 
-  const completion = await openaiClient!.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content:
-          "Rewrite the bullet following the instruction. Use only data present in the profile JSON; do NOT invent companies, roles, dates, or tools. Return JSON {bullet: string}.",
-      },
-      {
-        role: "user",
-        content: [
-          `Profile: ${JSON.stringify(profileJson).slice(0, 12000)}`,
-          `Job Description: ${jobDescription.slice(0, 4000)}`,
-          `Mode: ${mode} -> ${modeInstruction[mode]}`,
-          `Bullet: ${bullet}`,
-          "Return JSON only.",
-        ].join("\n"),
-      },
-    ],
-    response_format: { type: "json_object" },
-    max_tokens: 200,
-  });
+  let completion;
+  try {
+    completion = await openaiClient!.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "Rewrite the bullet following the instruction. Use only data present in the profile JSON; do NOT invent companies, roles, dates, or tools. Return JSON {bullet: string}.",
+        },
+        {
+          role: "user",
+          content: [
+            `Profile: ${JSON.stringify(profileJson).slice(0, 12000)}`,
+            `Job Description: ${jobDescription.slice(0, 4000)}`,
+            `Mode: ${mode} -> ${modeInstruction[mode]}`,
+            `Bullet: ${bullet}`,
+            "Return JSON only.",
+          ].join("\n"),
+        },
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 200,
+    });
+  } catch (error) {
+    handleOpenAIError(error);
+  }
 
-  const raw = completion.choices[0]?.message?.content ?? "{}";
+  const raw = completion!.choices[0]?.message?.content ?? "{}";
   const usage = {
-    promptTokens: completion.usage?.prompt_tokens ?? undefined,
-    completionTokens: completion.usage?.completion_tokens ?? undefined,
-    totalTokens: completion.usage?.total_tokens ?? undefined,
-    model: completion.model ?? null,
+    promptTokens: completion!.usage?.prompt_tokens ?? undefined,
+    completionTokens: completion!.usage?.completion_tokens ?? undefined,
+    totalTokens: completion!.usage?.total_tokens ?? undefined,
+    model: completion!.model ?? null,
   };
 
   const parsed = safeParseJson<{ bullet?: string }>(raw);
@@ -450,42 +555,47 @@ export async function rewriteBullet(options: {
     leadership: "Highlight ownership, stakeholders, and impact while staying truthful.",
   };
 
-  const completion = await openaiClient!.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content:
-          "Rewrite the bullet following the instruction. Return JSON {\"bullet\": \"...\"}. Do NOT invent new companies, degrees, tools, or achievements.",
-      },
-      {
-        role: "user",
-        content: [
-          `Action: ${action}`,
-          `Instruction: ${actionPrompt[action]}`,
-          `Job keywords: ${jobKeywords.join(", ") || "none"}`,
-          `Profile JSON (truncated): ${JSON.stringify(profileJson).slice(0, 12000)}`,
-          `Bullet: ${bullet}`,
-        ].join("\n"),
-      },
-    ],
-    response_format: { type: "json_object" },
-    max_tokens: 220,
-  });
+  let completion;
+  try {
+    completion = await openaiClient!.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "Rewrite the bullet following the instruction. Return JSON {\"bullet\": \"...\"}. Do NOT invent new companies, degrees, tools, or achievements.",
+        },
+        {
+          role: "user",
+          content: [
+            `Action: ${action}`,
+            `Instruction: ${actionPrompt[action]}`,
+            `Job keywords: ${jobKeywords.join(", ") || "none"}`,
+            `Profile JSON (truncated): ${JSON.stringify(profileJson).slice(0, 12000)}`,
+            `Bullet: ${bullet}`,
+          ].join("\n"),
+        },
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 220,
+    });
+  } catch (error) {
+    handleOpenAIError(error);
+  }
 
-  const raw = completion.choices[0]?.message?.content ?? "{}";
+  const raw = completion!.choices[0]?.message?.content ?? "{}";
   const usage = {
-    promptTokens: completion.usage?.prompt_tokens ?? undefined,
-    completionTokens: completion.usage?.completion_tokens ?? undefined,
-    totalTokens: completion.usage?.total_tokens ?? undefined,
-    model: completion.model ?? null,
+    promptTokens: completion!.usage?.prompt_tokens ?? undefined,
+    completionTokens: completion!.usage?.completion_tokens ?? undefined,
+    totalTokens: completion!.usage?.total_tokens ?? undefined,
+    model: completion!.model ?? null,
   };
 
   const parsed = safeParseJson<{ bullet?: string }>(raw);
-  if (parsed?.bullet) return { bullet: parsed.bullet, usage, model: completion.model ?? null };
+  if (parsed?.bullet) return { bullet: parsed.bullet, usage, model: completion!.model ?? null };
 
   const repaired = await repairJsonToSchema(raw, '{"bullet":"text"}');
-  if (repaired?.bullet) return { bullet: String(repaired.bullet), usage, model: completion.model ?? null };
+  if (repaired?.bullet) return { bullet: String(repaired.bullet), usage, model: completion!.model ?? null };
 
   throw new HttpError(500, "Unable to rewrite bullet");
 }

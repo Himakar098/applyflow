@@ -50,8 +50,11 @@ const jobSchema = z.object({
   source: z.string().optional(),
   status: z.enum(statuses),
   appliedDate: z.string().optional(),
+  followUpDate: z.string().optional(),
   notes: z.string().optional(),
   jobDescription: z.string().optional(),
+  jobUrl: z.string().optional(),
+  applicationUrl: z.string().optional(),
 });
 
 type JobFormValues = z.infer<typeof jobSchema>;
@@ -78,8 +81,11 @@ export function JobForm({
       source: "LinkedIn",
       status: "applied",
       appliedDate: new Date().toISOString().slice(0, 10),
+      followUpDate: "",
       notes: "",
       jobDescription: "",
+      jobUrl: "",
+      applicationUrl: "",
       ...defaultValues,
     },
   });
@@ -93,8 +99,11 @@ export function JobForm({
         source: defaultValues.source ?? "LinkedIn",
         status: (defaultValues.status as JobStatus) ?? "applied",
         appliedDate: defaultValues.appliedDate ?? "",
+        followUpDate: defaultValues.followUpDate ?? "",
         notes: defaultValues.notes ?? "",
         jobDescription: defaultValues.jobDescription ?? "",
+        jobUrl: defaultValues.jobUrl ?? "",
+        applicationUrl: defaultValues.applicationUrl ?? "",
       });
     }
   }, [defaultValues, form]);
@@ -111,8 +120,11 @@ export function JobForm({
         source: "LinkedIn",
         status: "applied",
         appliedDate: new Date().toISOString().slice(0, 10),
+        followUpDate: "",
         notes: "",
         jobDescription: "",
+        jobUrl: "",
+        applicationUrl: "",
       });
     }
   };
@@ -239,6 +251,19 @@ export function JobForm({
           />
           <FormField
             control={form.control}
+            name="followUpDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Follow-up date</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} disabled={submitting} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="notes"
             render={({ field }) => (
               <FormItem>
@@ -251,6 +276,34 @@ export function JobForm({
                     {...field}
                     disabled={submitting}
                   />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="jobUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Job listing URL</FormLabel>
+                <FormControl>
+                  <Input placeholder="https://jobs.company.com/..." {...field} disabled={submitting} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="applicationUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Application URL</FormLabel>
+                <FormControl>
+                  <Input placeholder="https://company.com/apply" {...field} disabled={submitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

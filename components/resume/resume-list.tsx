@@ -1,10 +1,25 @@
+"use client";
+
 import Link from "next/link";
-import { Download, FileText, Sparkles } from "lucide-react";
+import { Download, FileText, Sparkles, Trash } from "lucide-react";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+import { getAuthHeader } from "@/lib/firebase/getIdToken";
 import type { ResumeRecord } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +29,16 @@ const statusStyles: Record<ResumeRecord["status"], string> = {
   ready: "bg-emerald-100 text-emerald-800",
 };
 
-export function ResumeList({ resumes }: { resumes: ResumeRecord[] }) {
+export function ResumeList({
+  resumes,
+  onDeleted,
+}: {
+  resumes: ResumeRecord[];
+  onDeleted?: (id: string) => void;
+}) {
+  const { toast } = useToast();
+  const [deleting, setDeleting] = useState<ResumeRecord | null>(null);
+  const [deletingBusy, setDeletingBusy] = useState(false);
   if (resumes.length === 0) {
     return (
       <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
@@ -62,7 +86,9 @@ export function ResumeList({ resumes }: { resumes: ResumeRecord[] }) {
                       {resume.fileName}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Uploaded {new Date(resume.uploadedAt).toLocaleDateString()}
+                      {resume.uploadedAt
+                        ? `Uploaded ${new Date(resume.uploadedAt).toLocaleDateString()}`
+                        : "Upload date unavailable"}
                     </p>
                   </div>
                 </div>
@@ -76,10 +102,25 @@ export function ResumeList({ resumes }: { resumes: ResumeRecord[] }) {
                   >
                     {resume.status.charAt(0).toUpperCase() + resume.status.slice(1)}
                   </Badge>
-                  <Button variant="outline" size="icon" asChild>
-                    <Link href={resume.downloadUrl} target="_blank" aria-label="Download resume">
+                  <Button variant="outline" size="icon" asChild disabled={!resume.downloadUrl}>
+                    <Link
+                      href={resume.downloadUrl || "#"}
+                      target="_blank"
+                      aria-label="Download resume"
+                      onClick={(event) => {
+                        if (!resume.downloadUrl) event.preventDefault();
+                      }}
+                    >
                       <Download className="h-4 w-4" />
                     </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Delete resume"
+                    onClick={() => setDeleting(resume)}
+                  >
+                    <Trash className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               </div>
@@ -87,6 +128,47 @@ export function ResumeList({ resumes }: { resumes: ResumeRecord[] }) {
           </div>
         </ScrollArea>
       </CardContent>
+      <AlertDialog open={Boolean(deleting)} onOpenChange={() => setDeleting(null)}>
+        <AlertDialogContent aria-describedby="delete-resume-description">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete resume</AlertDialogTitle>
+            <AlertDialogDescription id="delete-resume-description">
+              This will delete the resume file from storage and remove its record.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleting(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={async () => {
+                if (!deleting) return;
+                setDeletingBusy(true);
+                try {
+                  const headers = await getAuthHeader();
+                  if (!headers) throw new Error("auth_required");
+                  const res = await fetch(`/api/resumes/${deleting.id}`, {
+                    method: "DELETE",
+                    headers,
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || "Delete failed");
+                  toast({ title: "Resume deleted" });
+                  onDeleted?.(deleting.id);
+                  setDeleting(null);
+                } catch (error) {
+                  const message = error instanceof Error ? error.message : "Delete failed";
+                  toast({ title: "Delete failed", description: message, variant: "destructive" });
+                } finally {
+                  setDeletingBusy(false);
+                }
+              }}
+              disabled={deletingBusy}
+            >
+              {deletingBusy ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

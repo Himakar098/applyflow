@@ -28,9 +28,16 @@ function handleError(error: unknown, digest: string) {
 export async function POST(req: NextRequest) {
   const digest = randomUUID();
   const started = Date.now();
+  let uid = "unknown";
 
   try {
-    const { uid } = await verifyIdToken(req);
+    uid = (await verifyIdToken(req)).uid;
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { ok: false, error: "AI_NOT_CONFIGURED", digest },
+        { status: 503 },
+      );
+    }
     const body = await req.json().catch(() => null);
 
     const jobTitle = body?.jobTitle?.toString().trim();
@@ -98,7 +105,7 @@ export async function POST(req: NextRequest) {
 
     const profileData = profileDoc.data();
     if (!profileData?.profileJson) {
-      throw new HttpError(400, "Profile not found. Upload and extract a resume first.");
+      throw new HttpError(400, "Profile not found. Build your profile in Settings or upload a resume.");
     }
 
     const { pack, keywords, usage, model } = await generateTailoredPack({
@@ -150,11 +157,8 @@ export async function POST(req: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    let uid = "unknown";
-    try {
-      uid = (await verifyIdToken(req)).uid;
-    } catch {
-      // ignore
+    if (error instanceof HttpError && error.message === "AI_NOT_CONFIGURED") {
+      return handleError(error, digest);
     }
     await writeLog(uid, {
       type: "tailored_pack",

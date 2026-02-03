@@ -24,6 +24,9 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
   const [extractState, setExtractState] = useState<"idle" | "extracting" | "extracted" | "failed">("idle");
   const [extractedText, setExtractedText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [pastedText, setPastedText] = useState("");
+  const [savingPaste, setSavingPaste] = useState(false);
+  const [dailyLimitHit, setDailyLimitHit] = useState(false);
   const { toast } = useToast();
   const { user, token, refreshToken } = useAuth();
 
@@ -32,10 +35,14 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!file.type.includes("pdf")) {
+    const isPdf = file.type.includes("pdf") || file.name.toLowerCase().endsWith(".pdf");
+    const isDocx =
+      file.type.includes("officedocument") || file.name.toLowerCase().endsWith(".docx");
+
+    if (!isPdf && !isDocx) {
       toast({
-        title: "Upload a PDF resume",
-        description: "Only PDF uploads are allowed for ATS safety.",
+        title: "Upload a resume file",
+        description: "Supported formats: PDF or DOCX.",
         variant: "destructive",
       });
       return;
@@ -61,13 +68,11 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
 
     try {
       setSelectedFile(file);
+      setExtractedText("");
       setExtractState("extracting");
+      setDailyLimitHit(false);
       setUploading(true);
       const extracted = await extractResumeText(file);
-      if (!extracted) {
-        setExtractState("failed");
-        throw new Error("Failed to extract text");
-      }
       setExtractedText(extracted);
       setExtractState("extracted");
 
@@ -84,6 +89,7 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
         status: "uploaded",
         uploadedAt: new Date().toISOString(),
         parsedText: extracted,
+        storagePath,
       });
 
       onUploaded(record);
@@ -93,11 +99,19 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
       });
     } catch (error) {
       console.error(error);
+      const message =
+        error instanceof Error && error.message === "RESUME_EXTRACT_FAILED"
+          ? "We couldn’t read text from this PDF. Try a text-based PDF (not scanned images)."
+          : "Please try again. Ensure Firebase Storage is configured.";
+      if (error instanceof Error && error.message === "DAILY_LIMIT_REACHED") {
+        setDailyLimitHit(true);
+      }
       toast({
         title: "Upload failed",
-        description: "Please try again. Ensure Firebase Storage is configured.",
+        description: message,
         variant: "destructive",
       });
+      setExtractState("failed");
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -110,15 +124,56 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
     if (!selectedFile) return;
     try {
       setExtractState("extracting");
+      setDailyLimitHit(false);
       const text = await extractResumeText(selectedFile);
-      if (!text) throw new Error("Failed to extract text");
       setExtractedText(text);
       setExtractState("extracted");
       toast({ title: "Re-extracted", description: "Updated preview from PDF." });
     } catch (error) {
       console.error(error);
       setExtractState("failed");
-      toast({ title: "Extract failed", description: "Try again with a valid PDF.", variant: "destructive" });
+      const message =
+        error instanceof Error && error.message === "RESUME_EXTRACT_FAILED"
+          ? "We couldn’t read text from this PDF. Try a text-based PDF."
+          : "Try again with a valid PDF.";
+      if (error instanceof Error && error.message === "DAILY_LIMIT_REACHED") {
+        setDailyLimitHit(true);
+      }
+      toast({ title: "Extract failed", description: message, variant: "destructive" });
+    }
+  };
+
+  const savePastedText = async () => {
+    if (!pastedText.trim()) {
+      toast({ title: "Paste resume text", description: "Add text to save.", variant: "destructive" });
+      return;
+    }
+    if (!user) {
+      toast({
+        title: "Session required",
+        description: "Sign in to save resume text.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSavingPaste(true);
+    try {
+      const currentToken = token ?? (await refreshToken());
+      const record = await saveResumeRecord(currentToken, {
+        fileName: "Pasted resume text",
+        downloadUrl: "",
+        status: "ready",
+        uploadedAt: new Date().toISOString(),
+        parsedText: pastedText.trim().slice(0, 12000),
+      });
+      onUploaded(record);
+      setPastedText("");
+      toast({ title: "Resume text saved" });
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Save failed", description: "Try again in a moment.", variant: "destructive" });
+    } finally {
+      setSavingPaste(false);
     }
   };
 
@@ -127,8 +182,8 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
       <CardHeader className="pb-3">
         <CardTitle>Upload resume</CardTitle>
         <CardDescription>
-          Store PDF resumes in Firebase Storage. ApplyFlow will parse text and
-          prep for future AI optimization.
+          Store PDF resumes in Firebase Storage. Text extraction is best-effort and
+          helps power tailoring.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -172,6 +227,14 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
           </div>
         </div>
         <div className="mt-4 space-y-2">
+          {dailyLimitHit ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              Daily resume extraction limit reached. Try again tomorrow or increase the limit in your env config.
+            </div>
+          ) : null}
+          <p className="text-xs text-muted-foreground">
+            Image-only PDFs aren’t extractable—try exporting from Word/Google Docs.
+          </p>
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>
               Status:{" "}
@@ -182,6 +245,9 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
                   : extractState === "extracted"
                     ? "Extracted"
                     : "Failed"}
+            </span>
+            <span className="text-xs">
+              {extractedText ? `${Math.min(extractedText.length, 4000)} chars` : "Preview"}
             </span>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" disabled={!selectedFile || uploading} onClick={() => fileInputRef.current?.click()}>
@@ -197,6 +263,26 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
             className="min-h-[180px] text-sm"
             value={extractedText ? extractedText.slice(0, 4000) : "No preview yet. Upload a PDF to extract text."}
           />
+          <p className="text-xs text-muted-foreground">
+            Best-effort text extraction. Scanned or image-only PDFs may show limited text.
+          </p>
+        </div>
+        <div className="mt-6 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-foreground">Or paste resume text</p>
+            <Button size="sm" variant="outline" onClick={savePastedText} disabled={savingPaste}>
+              {savingPaste ? "Saving..." : "Save text"}
+            </Button>
+          </div>
+          <Textarea
+            value={pastedText}
+            onChange={(e) => setPastedText(e.target.value)}
+            className="min-h-[160px] text-sm"
+            placeholder="Paste your resume text here. We'll save it to your profile for tailoring."
+          />
+          <p className="text-xs text-muted-foreground">
+            We’ll store up to 12,000 characters. Use this if you don’t have a PDF or DOCX.
+          </p>
         </div>
       </CardContent>
     </Card>

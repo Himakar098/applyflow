@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:pdf-extract": "node scripts/test-pdf-extract.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

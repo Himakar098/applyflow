@@ -11,6 +11,7 @@ const serializeResume = (
   id,
   fileName: data.fileName,
   downloadUrl: data.downloadUrl,
+  storagePath: data.storagePath,
   status: data.status,
   uploadedAt: data.uploadedAt,
   parsedText: data.parsedText,

@@ -27,6 +27,8 @@ const emptyProfile = (): Profile => ({
   visaStatus: "",
   targetRoles: [],
   preferredLocations: [],
+  preferredWorkModes: [],
+  preferredSeniority: [],
   yearsExperienceApprox: undefined,
   skills: { languages: [], tools: [], cloud: [], databases: [] },
   workExperience: [],
@@ -51,6 +53,8 @@ function normalizeProfile(data?: Partial<Profile>): Profile {
     },
     targetRoles: data?.targetRoles ?? base.targetRoles,
     preferredLocations: data?.preferredLocations ?? base.preferredLocations,
+    preferredWorkModes: data?.preferredWorkModes ?? base.preferredWorkModes,
+    preferredSeniority: data?.preferredSeniority ?? base.preferredSeniority,
     workExperience: data?.workExperience ?? base.workExperience,
     projects: data?.projects ?? base.projects,
     education: data?.education ?? base.education,
@@ -88,6 +92,7 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<Profile>(emptyProfile());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(true);
 
   const readiness = useMemo(() => computeReadiness(profile), [profile]);
 
@@ -119,6 +124,20 @@ export default function SettingsPage() {
 
   useEffect(() => {
     void loadProfile();
+    const loadAiStatus = async () => {
+      try {
+        const headers = await getAuthHeader();
+        if (!headers) return;
+        const res = await fetch("/api/ai/status", { headers });
+        if (res.ok) {
+          const data = await res.json();
+          setAiEnabled(Boolean(data.enabled));
+        }
+      } catch {
+        // ignore
+      }
+    };
+    void loadAiStatus();
   }, []);
 
   const saveProfile = async () => {
@@ -216,6 +235,17 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {!aiEnabled ? (
+        <Card className="border-0 bg-amber-50 shadow-sm shadow-amber-900/5">
+          <CardHeader>
+            <CardTitle>AI features disabled</CardTitle>
+            <CardDescription>
+              AI features are disabled until an OpenAI key is set by the admin.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : null}
 
       <DocumentVault className="border-0 bg-white shadow-sm shadow-slate-900/5" />
     </div>

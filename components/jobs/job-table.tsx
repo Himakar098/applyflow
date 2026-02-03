@@ -109,7 +109,7 @@ export function JobTable({ jobs, onEdit, onDelete }: JobTableProps) {
                       Edit
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href={`/dashboard/jobs/${job.id}`} className="flex items-center">
+                      <Link href={`/jobs/${job.id}`} className="flex items-center">
                         <ExternalLink className="mr-2 h-4 w-4" />
                         Workspace
                       </Link>

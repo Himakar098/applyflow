@@ -13,6 +13,12 @@ export const runtime = "nodejs";
 
 function handleError(error: unknown, digest: string) {
   if (error instanceof HttpError) {
+    if (error.message === "RESUME_EXTRACT_FAILED") {
+      return NextResponse.json(
+        { ok: false, error: "RESUME_EXTRACT_FAILED", digest },
+        { status: 422 },
+      );
+    }
     return NextResponse.json(
       { ok: false, error: error.message, digest },
       { status: error.status },
@@ -29,9 +35,18 @@ function handleError(error: unknown, digest: string) {
 export async function POST(req: NextRequest) {
   const digest = randomUUID();
   const started = Date.now();
+  let uid = "unknown";
 
   try {
-    const { uid, decoded } = await verifyIdToken(req);
+    const verified = await verifyIdToken(req);
+    uid = verified.uid;
+    const decoded = verified.decoded;
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { ok: false, error: "AI_NOT_CONFIGURED", digest },
+        { status: 503 },
+      );
+    }
 
     const formData = await req.formData();
     const file = formData.get("resume");
@@ -97,7 +112,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, profileJson, digest });
   } catch (error) {
-    await writeLog((await verifyIdToken(req).catch(() => ({ uid: "unknown" }))).uid, {
+    if (error instanceof HttpError && error.message === "AI_NOT_CONFIGURED") {
+      return handleError(error, digest);
+    }
+    await writeLog(uid, {
       type: "resume_extract",
       status: "error",
       digest,

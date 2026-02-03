@@ -16,6 +16,9 @@ function serializeJob(
     source: data.source,
     status: data.status,
     jobDescription: data.jobDescription,
+    jobUrl: data.jobUrl,
+    applicationUrl: data.applicationUrl,
+    followUpDate: data.followUpDate,
     appliedDate: data.appliedDate,
     notes: data.notes,
     createdAt: data.createdAt,
@@ -50,6 +53,9 @@ export async function createJob(
     .add({
       ...payload,
       jobDescription: payload.jobDescription ?? "",
+      jobUrl: payload.jobUrl ?? "",
+      applicationUrl: payload.applicationUrl ?? "",
+      followUpDate: payload.followUpDate ?? "",
       createdAt: now,
       updatedAt: now,
     });
@@ -75,6 +81,9 @@ export async function updateJob(
   await docRef.update({
     ...payload,
     jobDescription: payload.jobDescription ?? "",
+    jobUrl: payload.jobUrl ?? "",
+    applicationUrl: payload.applicationUrl ?? "",
+    followUpDate: payload.followUpDate ?? "",
     updatedAt: now,
   });
 

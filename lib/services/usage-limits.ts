@@ -1,6 +1,12 @@
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 
-type LimitKind = "tailored_pack" | "bullet_rewrite" | "resume_extract" | "jd_parse" | "other";
+type LimitKind =
+  | "tailored_pack"
+  | "bullet_rewrite"
+  | "resume_extract"
+  | "jd_parse"
+  | "job_search"
+  | "other";
 
 export function getUtcDateKey(): string {
   return new Date().toISOString().slice(0, 10);
@@ -17,6 +23,7 @@ export function getLimitsFromEnv() {
     bulletRewriteLimit: toNumber(process.env.DAILY_BULLET_REWRITE_LIMIT, 30),
     resumeExtractLimit: toNumber(process.env.DAILY_RESUME_EXTRACT_LIMIT, 10),
     jdParseLimit: toNumber(process.env.DAILY_JD_PARSE_LIMIT, 80),
+    jobSearchLimit: toNumber(process.env.DAILY_JOB_SEARCH_LIMIT, 60),
     totalLimit: toNumber(process.env.DAILY_TOTAL_AI_LIMIT, 50),
   };
 }
@@ -28,7 +35,13 @@ type UsageResult =
     dateKey: string;
     counts: Counts;
     limits: Limits;
-    limitType: "tailored_pack" | "bullet_rewrite" | "resume_extract" | "jd_parse" | "total";
+    limitType:
+      | "tailored_pack"
+      | "bullet_rewrite"
+      | "resume_extract"
+      | "jd_parse"
+      | "job_search"
+      | "total";
   };
 
 type Counts = {
@@ -36,6 +49,7 @@ type Counts = {
   bulletRewriteCount: number;
   resumeExtractCount: number;
   jdParseCount: number;
+  jobSearchCount: number;
   totalCount: number;
 };
 
@@ -61,6 +75,7 @@ export async function checkAndIncrementUsage(params: {
       bulletRewriteCount: Number(data.bulletRewriteCount ?? 0),
       resumeExtractCount: Number(data.resumeExtractCount ?? 0),
       jdParseCount: Number(data.jdParseCount ?? 0),
+      jobSearchCount: Number(data.jobSearchCount ?? 0),
       totalCount: Number(data.totalCount ?? 0),
     };
 
@@ -77,6 +92,9 @@ export async function checkAndIncrementUsage(params: {
     if (kind === "jd_parse") {
       next.jdParseCount += increment;
     }
+    if (kind === "job_search") {
+      next.jobSearchCount += increment;
+    }
     // All AI calls count toward total
     next.totalCount += increment;
 
@@ -91,6 +109,9 @@ export async function checkAndIncrementUsage(params: {
     }
     if (next.jdParseCount > limits.jdParseLimit) {
       return { allowed: false, limitType: "jd_parse", dateKey, counts, limits };
+    }
+    if (next.jobSearchCount > limits.jobSearchLimit) {
+      return { allowed: false, limitType: "job_search", dateKey, counts, limits };
     }
     if (next.totalCount > limits.totalLimit) {
       return { allowed: false, limitType: "total", dateKey, counts, limits };
@@ -112,6 +133,9 @@ export async function checkAndIncrementUsage(params: {
     }
     if (kind === "jd_parse") {
       updates.jdParseCount = FieldValue.increment(increment);
+    }
+    if (kind === "job_search") {
+      updates.jobSearchCount = FieldValue.increment(increment);
     }
     updates.totalCount = FieldValue.increment(increment);
 

@@ -7,6 +7,7 @@ import { Sparkles } from "lucide-react";
 import { ResumeList } from "@/components/resume/resume-list";
 import { ResumeUploader } from "@/components/resume/resume-uploader";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -79,7 +80,7 @@ export default function ResumePage() {
             <CardHeader>
               <CardTitle>Extracted text preview</CardTitle>
               <CardDescription>
-                We parse resume text on upload. Future AI optimizations will build on this.
+                Best-effort text extraction from your uploaded PDF. Scanned images may not extract.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -94,13 +95,24 @@ export default function ResumePage() {
                 >
                   <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                     <Sparkles className="h-4 w-4" />
-                    Extracted text
+                    Extracted text (best-effort)
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {latestResume.parsedText
                       ? `${latestResume.parsedText.slice(0, 4000)}`
-                      : "Upload a resume to capture text for future AI tailoring."}
+                      : "No text extracted yet. Try re-extracting a text-based PDF."}
                   </p>
+                  {latestResume.parsedText ? (
+                    <div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigator.clipboard.writeText(latestResume.parsedText ?? "")}
+                      >
+                        Copy preview
+                      </Button>
+                    </div>
+                  ) : null}
                 </motion.div>
               ) : (
                 <div className="rounded-xl border border-dashed px-4 py-10 text-center">
@@ -118,7 +130,10 @@ export default function ResumePage() {
         {loading ? (
           <Skeleton className="h-40 w-full rounded-xl" />
         ) : (
-          <ResumeList resumes={resumes} />
+          <ResumeList
+            resumes={resumes}
+            onDeleted={(id) => setResumes((prev) => prev.filter((resume) => resume.id !== id))}
+          />
         )}
       </div>
     </div>

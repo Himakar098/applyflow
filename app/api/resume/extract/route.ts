@@ -10,6 +10,12 @@ export const runtime = "nodejs";
 
 function handleError(error: unknown, digest: string) {
   if (error instanceof HttpError) {
+    if (error.message === "RESUME_EXTRACT_FAILED") {
+      return NextResponse.json(
+        { ok: false, error: "RESUME_EXTRACT_FAILED", digest },
+        { status: 422 },
+      );
+    }
     return NextResponse.json(
       { ok: false, error: error.message, digest },
       { status: error.status },
@@ -26,9 +32,10 @@ function handleError(error: unknown, digest: string) {
 export async function POST(req: NextRequest) {
   const digest = randomUUID();
   const started = Date.now();
+  let uid = "unknown";
 
   try {
-    const { uid } = await verifyIdToken(req);
+    uid = (await verifyIdToken(req)).uid;
     const formData = await req.formData();
     const file = formData.get("file");
 
@@ -75,7 +82,7 @@ export async function POST(req: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    await writeLog((await verifyIdToken(req).catch(() => ({ uid: "unknown" }))).uid, {
+    await writeLog(uid, {
       type: "resume_extract",
       status: "error",
       digest,

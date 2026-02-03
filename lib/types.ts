@@ -17,6 +17,9 @@ export type JobApplication = {
   source?: JobSource | string;
   status: JobStatus;
   jobDescription?: string;
+  jobUrl?: string;
+  applicationUrl?: string;
+  followUpDate?: string;
   appliedDate?: string;
   notes?: string;
   createdAt: string;
@@ -29,6 +32,7 @@ export type ResumeRecord = {
   id: string;
   fileName: string;
   downloadUrl: string;
+  storagePath?: string;
   status: "uploaded" | "processing" | "ready";
   uploadedAt: string;
   parsedText?: string;
@@ -79,6 +83,8 @@ export type Profile = {
   visaStatus?: string;
   targetRoles: string[];
   preferredLocations: string[];
+  preferredWorkModes?: string[];
+  preferredSeniority?: string[];
   yearsExperienceApprox?: number;
   skills: ProfileSkills;
   workExperience: WorkExperience[];

@@ -127,6 +127,22 @@ export function ProfileBuilder({ profile, onChange, className }: ProfileBuilderP
             />
           </div>
           <div className="space-y-2">
+            <Label>Work mode preference</Label>
+            <Input
+              placeholder="e.g., remote, hybrid, onsite"
+              value={(profile.preferredWorkModes ?? []).join(", ")}
+              onChange={(e) => update({ preferredWorkModes: commaList(e.target.value) })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Seniority preference</Label>
+            <Input
+              placeholder="e.g., entry, mid, senior"
+              value={(profile.preferredSeniority ?? []).join(", ")}
+              onChange={(e) => update({ preferredSeniority: commaList(e.target.value) })}
+            />
+          </div>
+          <div className="space-y-2">
             <Label>Years of experience (approx)</Label>
             <Input
               type="number"

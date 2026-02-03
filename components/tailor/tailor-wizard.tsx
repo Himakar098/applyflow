@@ -35,6 +35,7 @@ type TailorWizardProps = {
   jobId?: string | null;
   profileJson?: Record<string, unknown> | null;
   profileText?: string;
+  aiEnabled?: boolean;
   onHistoryLoad: () => Promise<void>;
 };
 
@@ -60,6 +61,7 @@ export function TailorWizard({
   jobId,
   profileJson,
   profileText = "",
+  aiEnabled = true,
   onHistoryLoad,
 }: TailorWizardProps) {
   const { toast } = useToast();
@@ -79,6 +81,9 @@ export function TailorWizard({
   const [parseLoading, setParseLoading] = useState(false);
 
   const headersPromise = useMemo(() => getAuthHeader(), []);
+
+  const hasProfile = Boolean(profileJson);
+  const hasJD = Boolean(jobTitle && company && jobDescription);
 
   const profileBlob = useMemo(
     () => (profileText || JSON.stringify(profileJson || {})).toLowerCase(),
@@ -357,6 +362,14 @@ export function TailorWizard({
     index: number,
     action: "tighten" | "add_metric" | "ats" | "leadership",
   ) => {
+    if (!aiEnabled) {
+      toast({
+        title: "AI not configured",
+        description: "Ask an admin to set OPENAI_API_KEY to enable bullet tuning.",
+        variant: "destructive",
+      });
+      return;
+    }
     const headers = await headersPromise;
     if (!headers) return;
     if (!profileJson) {
@@ -384,7 +397,11 @@ export function TailorWizard({
       toast({ title: "Bullet updated" });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Refine failed";
-      toast({ title: "Refine failed", description: message, variant: "destructive" });
+      const description =
+        message === "AI_NOT_CONFIGURED"
+          ? "AI features are disabled until an OpenAI key is configured."
+          : message;
+      toast({ title: "Refine failed", description, variant: "destructive" });
     }
   };
 
@@ -392,6 +409,22 @@ export function TailorWizard({
     const headers = await headersPromise;
     if (!headers) {
       toast({ title: "Sign in required", variant: "destructive" });
+      return;
+    }
+    if (!aiEnabled) {
+      toast({
+        title: "AI not configured",
+        description: "Ask an admin to set OPENAI_API_KEY to enable generation.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!profileJson) {
+      toast({
+        title: "Profile required",
+        description: "Build your profile in Settings or upload a resume before generating.",
+        variant: "destructive",
+      });
       return;
     }
     if (!jobTitle || !company || !jobDescription) {
@@ -424,7 +457,11 @@ export function TailorWizard({
       await onHistoryLoad();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Generation failed";
-      toast({ title: "Generation failed", description: message, variant: "destructive" });
+      const description =
+        message === "AI_NOT_CONFIGURED"
+          ? "AI features are disabled until an OpenAI key is configured."
+          : message;
+      toast({ title: "Generation failed", description, variant: "destructive" });
     } finally {
       setGenerating(false);
     }
@@ -483,6 +520,16 @@ export function TailorWizard({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {!hasProfile ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              Build your profile in Settings (or upload a resume) before generating.
+            </div>
+          ) : null}
+          {!aiEnabled ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              AI features are disabled until an OpenAI key is configured.
+            </div>
+          ) : null}
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label>Job title</Label>
@@ -571,6 +618,11 @@ export function TailorWizard({
             {parseLoading ? (
               <p className="text-xs text-muted-foreground">Parsing JD...</p>
             ) : null}
+            {!parseLoading && !jobDescription ? (
+              <p className="text-xs text-muted-foreground">
+                Paste a JD to auto-fill keywords, requirements, and role suggestions.
+              </p>
+            ) : null}
             {jdKeywords.length ? (
               <div className="flex flex-wrap gap-2 text-xs">
                 {jdKeywords.slice(0, 20).map((k) => (
@@ -636,7 +688,7 @@ export function TailorWizard({
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button onClick={generate} disabled={generating}>
+            <Button onClick={generate} disabled={generating || !aiEnabled}>
               <Sparkles className="mr-2 h-4 w-4" />
               {generating ? "Generating..." : "Generate"}
             </Button>
@@ -649,6 +701,11 @@ export function TailorWizard({
               Export pack
             </Button>
           </div>
+          {!hasJD ? (
+            <p className="text-xs text-muted-foreground">
+              Fill job title, company, and JD before generating.
+            </p>
+          ) : null}
           {keywords.length ? (
             <div className="flex flex-wrap gap-2 text-xs">
               {keywords.map((k) => (
@@ -657,6 +714,11 @@ export function TailorWizard({
                 </span>
               ))}
             </div>
+          ) : null}
+          {!aiEnabled ? (
+            <p className="text-xs text-muted-foreground">
+              You can still edit and save manual outputs.
+            </p>
           ) : null}
         </CardContent>
       </Card>
@@ -690,76 +752,89 @@ export function TailorWizard({
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {bullets.map((bullet, idx) => {
-              const matched = matchedKeywords(bullet);
-              const risks = detectRisks(bullet);
-              return (
-                <div key={idx} className="rounded-lg border p-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>Bullet {idx + 1}</span>
-                      {risks.length ? (
-                        <span
-                          className="rounded-full bg-amber-50 px-2 py-1 text-amber-700"
-                          title={`Flags: ${risks.join(", ")}`}
-                        >
-                          Hallucination risk
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => moveBullet(idx, "up")} disabled={idx === 0}>
-                        <ArrowUp className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => moveBullet(idx, "down")}
-                        disabled={idx === bullets.length - 1}
-                      >
-                        <ArrowDown className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => removeBulletRow(idx)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <Textarea
-                    className="text-sm"
-                    value={bullet}
-                    onChange={(e) => {
-                      const updated = [...bullets];
-                      updated[idx] = e.target.value;
-                      setBullets(updated);
-                    }}
-                  />
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    {matched.map((k) => (
-                      <span key={k} className="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">
-                        {k}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={() => tuneBullet(idx, "tighten")}>
-                      Tighten
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => tuneBullet(idx, "add_metric")}>
-                      Add metric
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => tuneBullet(idx, "ats")}>
-                      Make ATS
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => tuneBullet(idx, "leadership")}>
-                      Leadership
-                    </Button>
-                  </div>
+            {bullets.length === 0 ? (
+              <div className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
+                No bullets yet. Generate a pack or add your first bullet manually.
+                <div className="mt-3">
+                  <Button variant="outline" size="sm" onClick={addBulletRow}>
+                    Add first bullet
+                  </Button>
                 </div>
-              );
-            })}
-            <Button variant="ghost" size="sm" onClick={addBulletRow}>
-              Add bullet
-            </Button>
+              </div>
+            ) : (
+              <>
+                {bullets.map((bullet, idx) => {
+                  const matched = matchedKeywords(bullet);
+                  const risks = detectRisks(bullet);
+                  return (
+                    <div key={idx} className="rounded-lg border p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>Bullet {idx + 1}</span>
+                          {risks.length ? (
+                            <span
+                              className="rounded-full bg-amber-50 px-2 py-1 text-amber-700"
+                              title={`Flags: ${risks.join(", ")}`}
+                            >
+                              Hallucination risk
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => moveBullet(idx, "up")} disabled={idx === 0}>
+                            <ArrowUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => moveBullet(idx, "down")}
+                            disabled={idx === bullets.length - 1}
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => removeBulletRow(idx)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <Textarea
+                        className="text-sm"
+                        value={bullet}
+                        onChange={(e) => {
+                          const updated = [...bullets];
+                          updated[idx] = e.target.value;
+                          setBullets(updated);
+                        }}
+                      />
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        {matched.map((k) => (
+                          <span key={k} className="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">
+                            {k}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" variant="outline" onClick={() => tuneBullet(idx, "tighten")} disabled={!aiEnabled}>
+                          Tighten
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => tuneBullet(idx, "add_metric")} disabled={!aiEnabled}>
+                          Add metric
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => tuneBullet(idx, "ats")} disabled={!aiEnabled}>
+                          Make ATS
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => tuneBullet(idx, "leadership")} disabled={!aiEnabled}>
+                          Leadership
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+                <Button variant="ghost" size="sm" onClick={addBulletRow}>
+                  Add bullet
+                </Button>
+              </>
+            )}
             <details className="border rounded-lg p-3">
               <summary className="cursor-pointer text-sm font-semibold">Advanced: edit raw</summary>
               <p className="text-xs text-muted-foreground">One bullet per line.</p>

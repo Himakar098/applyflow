@@ -20,8 +20,8 @@ export default function DashboardLayout({
         <Sidebar />
         <div className="flex flex-1 flex-col">
           <header className="sticky top-0 z-30 border-b bg-white/80 backdrop-blur-xl">
-            <div className="flex items-center justify-between px-6 py-4">
-              <div>
+            <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div className="space-y-1">
                 <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
                   ApplyFlow
                 </p>
@@ -35,12 +35,12 @@ export default function DashboardLayout({
               <UserNav user={user} />
             </div>
           </header>
-          <main className="flex-1 px-6 py-6">
+          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.18 }}
-              className="space-y-6"
+              className="mx-auto w-full max-w-screen-2xl space-y-6"
             >
               {children}
             </motion.div>

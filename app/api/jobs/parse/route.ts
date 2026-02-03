@@ -28,9 +28,10 @@ function handleError(error: unknown, digest: string) {
 export async function POST(req: NextRequest) {
   const digest = randomUUID();
   const started = Date.now();
+  let uid = "unknown";
 
   try {
-    const { uid } = await verifyIdToken(req);
+    uid = (await verifyIdToken(req)).uid;
     const body = await req.json().catch(() => null);
     const jobText = body?.jobText?.toString() ?? "";
 
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    await writeLog((await verifyIdToken(req).catch(() => ({ uid: "unknown" }))).uid, {
+    await writeLog(uid, {
       type: "jd_parse",
       status: "error",
       digest,

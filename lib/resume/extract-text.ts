@@ -6,38 +6,52 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB
 const MAX_TEXT_LENGTH = 12_000;
 
 function normalize(text: string) {
-  return text.replace(/\s+/g, " ").trim().slice(0, MAX_TEXT_LENGTH);
+  const cleaned = text
+    .replace(/[^\x09\x0A\x0D\x20-\x7E]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned.slice(0, MAX_TEXT_LENGTH);
 }
 
 function ensurePdfPolyfills() {
   const g: any = globalThis as any;
   if (typeof g.DOMMatrix === "undefined") g.DOMMatrix = class DOMMatrix {};
+  if (typeof g.DOMMatrixReadOnly === "undefined") g.DOMMatrixReadOnly = g.DOMMatrix;
   if (typeof g.Path2D === "undefined") g.Path2D = class Path2D {};
   if (typeof g.ImageData === "undefined") g.ImageData = class ImageData {};
   if (typeof g.HTMLCanvasElement === "undefined") g.HTMLCanvasElement = class HTMLCanvasElement {};
 }
 
+// Ensure polyfills are registered before pdfjs loads.
+ensurePdfPolyfills();
+
 async function extractPdfText(buffer: Buffer): Promise<string> {
-  ensurePdfPolyfills();
-  process.env.PDFJS_DISABLE_WORKER = "true";
-  const pdfjsLib: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  if (pdfjsLib?.GlobalWorkerOptions) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = undefined;
+  try {
+    ensurePdfPolyfills();
+    process.env.PDFJS_DISABLE_WORKER = "true";
+    const pdfjsLib: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const pdf = pdfjsLib?.default ?? pdfjsLib;
+    if (pdf?.GlobalWorkerOptions) {
+      pdf.GlobalWorkerOptions.workerSrc = undefined;
+    }
+    const loadingTask = pdf.getDocument({
+      data: buffer,
+      useWorker: false,
+      disableFontFace: true,
+    });
+    const doc = await loadingTask.promise;
+    const texts: string[] = [];
+    for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
+      const page = await doc.getPage(pageNum);
+      const content = await page.getTextContent();
+      const pageText = content.items.map((item: any) => item?.str ?? "").join(" ");
+      texts.push(pageText);
+    }
+    await doc.cleanup?.();
+    return texts.join(" ");
+  } catch {
+    throw new HttpError(400, "RESUME_EXTRACT_FAILED");
   }
-  const loadingTask = pdfjsLib.getDocument({
-    data: buffer,
-    useWorker: false,
-  });
-  const doc = await loadingTask.promise;
-  const texts: string[] = [];
-  for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
-    const page = await doc.getPage(pageNum);
-    const content = await page.getTextContent();
-    const pageText = content.items.map((item: any) => item?.str ?? "").join(" ");
-    texts.push(pageText);
-  }
-  await doc.cleanup?.();
-  return texts.join(" ");
 }
 
 export async function extractResumeText(file: File): Promise<string> {
@@ -60,15 +74,25 @@ export async function extractResumeText(file: File): Promise<string> {
     file.type.includes("officedocument") ||
     lowerName.endsWith(".docx")
   ) {
-    const result = await mammoth.extractRawText({ buffer });
-    text = result.value;
+    try {
+      const result = await mammoth.extractRawText({ buffer });
+      text = result.value;
+    } catch {
+      throw new HttpError(400, "RESUME_EXTRACT_FAILED");
+    }
   } else {
     throw new HttpError(400, "Unsupported file type. Upload PDF or DOCX.");
   }
 
   if (!text || text.startsWith("%PDF")) {
-    throw new HttpError(400, "Could not extract readable text from file");
+    throw new HttpError(400, "RESUME_EXTRACT_FAILED");
   }
 
-  return normalize(text);
+  const normalized = normalize(text);
+  const alnumCount = (normalized.match(/[a-zA-Z0-9]/g) || []).length;
+  const ratio = normalized.length ? alnumCount / normalized.length : 0;
+  if (normalized.length > 200 && ratio < 0.1) {
+    throw new HttpError(400, "RESUME_EXTRACT_FAILED");
+  }
+  return normalized;
 }

@@ -25,30 +25,39 @@ export async function refineParsedJD(input: {
 }): Promise<ParsedJD> {
   if (!useOpenAI || !client) return input.heuristic;
 
-  const completion = await client.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are a JD parsing assistant. Return JSON only with keys roleTitleGuess, companyGuess, keywords[], requirements{mustHave[],niceToHave[]}, techStack[]. No prose.",
-      },
-      {
-        role: "user",
-        content: [
-          "Job text:",
-          input.jobText.slice(0, 12000),
-          "",
-          "Heuristic guess:",
-          JSON.stringify(input.heuristic).slice(0, 4000),
-        ].join("\n"),
-      },
-    ],
-    response_format: { type: "json_object" },
-    max_tokens: 600,
-  });
+  let completion;
+  try {
+    completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a JD parsing assistant. Return JSON only with keys roleTitleGuess, companyGuess, keywords[], requirements{mustHave[],niceToHave[]}, techStack[]. No prose.",
+        },
+        {
+          role: "user",
+          content: [
+            "Job text:",
+            input.jobText.slice(0, 12000),
+            "",
+            "Heuristic guess:",
+            JSON.stringify(input.heuristic).slice(0, 4000),
+          ].join("\n"),
+        },
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 600,
+    });
+  } catch (error) {
+    const err = error as { status?: number; code?: string };
+    if (err?.status === 401 || err?.code === "invalid_api_key") {
+      return input.heuristic;
+    }
+    return input.heuristic;
+  }
 
-  const raw = completion.choices[0]?.message?.content ?? "{}";
+  const raw = completion!.choices[0]?.message?.content ?? "{}";
   const parsed = ParsedJDSchema.safeParse(JSON.parse(raw));
   if (parsed.success) {
     return {
