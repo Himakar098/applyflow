@@ -23,6 +23,7 @@ function serializeJob(
     notes: data.notes,
     createdAt: data.createdAt,
     updatedAt: data.updatedAt,
+    checklist: data.checklist,
   };
 }
 
@@ -33,7 +34,7 @@ export async function fetchJobs(idToken: string | null): Promise<JobApplication[
     .collection("users")
     .doc(uid)
     .collection("jobs")
-    .orderBy("appliedDate", "desc")
+    .orderBy("updatedAt", "desc")
     .get();
 
   return snapshot.docs.map((doc) => serializeJob(doc.id, doc.data()));

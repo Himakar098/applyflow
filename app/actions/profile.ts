@@ -3,50 +3,12 @@
 import { adminDb } from "@/lib/firebase/admin";
 import type { Profile } from "@/lib/types";
 import { requireUserId } from "@/lib/services/server-auth";
+import { emptyProfile, normalizeProfile } from "@/lib/profile/normalize";
 
-const emptyProfile = (email?: string): Profile => ({
-  fullName: "",
+const emptyProfileWithEmail = (email?: string): Profile => ({
+  ...emptyProfile(),
   email,
-  visaStatus: "",
-  targetRoles: [],
-  preferredLocations: [],
-  preferredWorkModes: [],
-  preferredSeniority: [],
-  yearsExperienceApprox: undefined,
-  skills: { languages: [], tools: [], cloud: [], databases: [] },
-  workExperience: [],
-  projects: [],
-  education: [],
-  certifications: [],
-  hobbies: [],
-  preferredTitles: [],
 });
-
-function normalizeProfile(data?: Partial<Profile>, email?: string): Profile {
-  const base = emptyProfile(email);
-  const skills = data?.skills ?? base.skills;
-
-  return {
-    ...base,
-    ...data,
-    skills: {
-      languages: skills.languages ?? [],
-      tools: skills.tools ?? [],
-      cloud: skills.cloud ?? [],
-      databases: skills.databases ?? [],
-    },
-    targetRoles: data?.targetRoles ?? base.targetRoles,
-    preferredLocations: data?.preferredLocations ?? base.preferredLocations,
-    preferredWorkModes: data?.preferredWorkModes ?? base.preferredWorkModes,
-    preferredSeniority: data?.preferredSeniority ?? base.preferredSeniority,
-    workExperience: data?.workExperience ?? base.workExperience,
-    projects: data?.projects ?? base.projects,
-    education: data?.education ?? base.education,
-    certifications: data?.certifications ?? base.certifications,
-    hobbies: data?.hobbies ?? base.hobbies,
-    preferredTitles: data?.preferredTitles ?? base.preferredTitles,
-  };
-}
 
 export async function getProfile(
   idToken: string | null,
@@ -57,7 +19,7 @@ export async function getProfile(
   const snapshot = await docRef.get();
 
   if (!snapshot.exists) {
-    const profile = normalizeProfile(undefined, email || undefined);
+    const profile = emptyProfileWithEmail(email || undefined);
     await docRef.set({
       profileJson: profile,
       updatedAt: new Date().toISOString(),
@@ -66,7 +28,8 @@ export async function getProfile(
   }
 
   const data = snapshot.data() || {};
-  const profileJson = normalizeProfile(data.profileJson as Partial<Profile>, email || undefined);
+  const profileJson = normalizeProfile(data.profileJson as Partial<Profile>);
+  if (email && !profileJson.email) profileJson.email = email;
   return {
     ...profileJson,
     resumeText: data.resumeText,
@@ -83,17 +46,14 @@ export async function updateProfile(
   const snapshot = await docRef.get();
   const existing = normalizeProfile(snapshot.data()?.profileJson as Partial<Profile> | undefined);
 
-  const merged = normalizeProfile(
-    {
-      ...existing,
-      ...payload,
-      skills: {
-        ...existing.skills,
-        ...(payload.skills ?? {}),
-      },
+  const merged = normalizeProfile({
+    ...existing,
+    ...payload,
+    skills: {
+      ...existing.skills,
+      ...(payload.skills ?? {}),
     },
-    existing.email,
-  );
+  });
 
   const now = new Date().toISOString();
   await docRef.set(

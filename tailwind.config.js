@@ -87,13 +87,17 @@ module.exports = {
   		},
   		fontFamily: {
   			sans: [
-  				'var(--font-geist-sans)',
-  				'Inter',
-  				'system-ui',
-  				'sans-serif'
+  				'var(--font-sans)',
+  				'ui-sans-serif',
+  				'system-ui'
+  			],
+  			display: [
+  				'var(--font-display)',
+  				'ui-sans-serif',
+  				'system-ui'
   			],
   			mono: [
-  				'var(--font-geist-mono)',
+  				'var(--font-mono)',
   				'ui-monospace',
   				'SFMono-Regular'
   			]

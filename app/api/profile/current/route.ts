@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { HttpError, verifyIdToken } from "@/lib/auth/verify-id-token";
 import { adminDb } from "@/lib/firebase/admin";
+import { normalizeProfile } from "@/lib/profile/normalize";
 
 export const runtime = "nodejs";
 
@@ -41,10 +42,11 @@ export async function GET(req: NextRequest) {
     }
 
     const data = doc.data() || {};
+    const normalizedProfile = normalizeProfile(data.profileJson ?? {});
     return NextResponse.json(
       {
         ok: true,
-        profileJson: data.profileJson ?? null,
+        profileJson: normalizedProfile,
         resumeText: data.resumeText ?? "",
         updatedAt: data.updatedAt?.toDate
           ? data.updatedAt.toDate().toISOString()

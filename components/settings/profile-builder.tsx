@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import type { Certification, Education, Profile, Project, WorkExperience } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 type ProfileBuilderProps = {
   profile: Profile;
@@ -85,7 +86,7 @@ export function ProfileBuilder({ profile, onChange, className }: ProfileBuilderP
   };
 
   return (
-    <Card className={className}>
+    <Card className={cn("surface-card", className)}>
       <CardHeader>
         <CardTitle>Profile builder</CardTitle>
         <CardDescription>
@@ -100,6 +101,30 @@ export function ProfileBuilder({ profile, onChange, className }: ProfileBuilderP
               placeholder="e.g., Priya Raman"
               value={profile.fullName ?? ""}
               onChange={(e) => update({ fullName: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input
+              placeholder="e.g., priya@email.com"
+              value={profile.email ?? ""}
+              onChange={(e) => update({ email: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Phone</Label>
+            <Input
+              placeholder="e.g., +1 555 123 4567"
+              value={profile.phone ?? ""}
+              onChange={(e) => update({ phone: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Current location</Label>
+            <Input
+              placeholder="e.g., Austin, TX"
+              value={profile.location ?? ""}
+              onChange={(e) => update({ location: e.target.value })}
             />
           </div>
           <div className="space-y-2">
@@ -158,6 +183,30 @@ export function ProfileBuilder({ profile, onChange, className }: ProfileBuilderP
               placeholder="e.g., Climbing, Photography"
               value={(profile.hobbies ?? []).join(", ")}
               onChange={(e) => update({ hobbies: commaList(e.target.value) })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>LinkedIn</Label>
+            <Input
+              placeholder="e.g., https://linkedin.com/in/..."
+              value={profile.linkedin ?? ""}
+              onChange={(e) => update({ linkedin: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>GitHub</Label>
+            <Input
+              placeholder="e.g., https://github.com/..."
+              value={profile.github ?? ""}
+              onChange={(e) => update({ github: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Portfolio</Label>
+            <Input
+              placeholder="e.g., https://yourportfolio.com"
+              value={profile.portfolio ?? ""}
+              onChange={(e) => update({ portfolio: e.target.value })}
             />
           </div>
         </div>

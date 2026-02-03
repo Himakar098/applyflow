@@ -59,3 +59,34 @@ export async function GET(
     return handleError(error, digest);
   }
 }
+
+export async function PATCH(
+  req: NextRequest,
+  context: { params: Promise<{ jobId: string }> },
+) {
+  const digest = randomUUID();
+  try {
+    const { uid } = await verifyIdToken(req);
+    const { jobId } = await context.params;
+    if (!jobId) throw new HttpError(400, "jobId is required");
+
+    const body = await req.json().catch(() => null);
+    const checklist = body?.checklist;
+    if (!checklist || typeof checklist !== "object") {
+      throw new HttpError(400, "checklist is required");
+    }
+
+    const docRef = adminDb.collection("users").doc(uid).collection("jobs").doc(jobId);
+    await docRef.set(
+      {
+        checklist,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true },
+    );
+
+    return NextResponse.json({ ok: true, digest }, { status: 200 });
+  } catch (error) {
+    return handleError(error, digest);
+  }
+}

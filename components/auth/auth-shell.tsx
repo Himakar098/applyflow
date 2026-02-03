@@ -27,7 +27,7 @@ export function AuthShell({
   backLink,
 }: AuthShellProps) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[#f2f6ff] to-white px-4 py-10">
+    <div className="flex min-h-screen items-center justify-center bg-transparent px-4 py-10">
       <div className="w-full max-w-md">
         {backLink ? (
           <Link
@@ -38,7 +38,7 @@ export function AuthShell({
             {backLink.label}
           </Link>
         ) : null}
-        <Card className="border-0 shadow-xl shadow-slate-900/5">
+        <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="text-2xl font-semibold text-foreground">
               {title}

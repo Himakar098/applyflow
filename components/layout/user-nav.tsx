@@ -39,7 +39,7 @@ export function UserNav({ user }: UserNavProps) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-2 py-1 pr-3 text-left shadow-sm shadow-slate-900/5 transition hover:-translate-y-[1px]">
+      <DropdownMenuTrigger className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-2 py-1 pr-3 text-left shadow-[0_12px_30px_-20px_rgba(14,22,37,0.45)] transition hover:-translate-y-[1px]">
         <Avatar className="h-9 w-9">
           <AvatarImage src={user?.photoURL ?? undefined} alt={user?.email ?? ""} />
           <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">

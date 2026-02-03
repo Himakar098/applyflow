@@ -71,7 +71,6 @@ export function TailorWizard({
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [manualKeywords, setManualKeywords] = useState("");
-  const [showRaw, setShowRaw] = useState(false);
   const [jdKeywords, setJdKeywords] = useState<string[]>([]);
   const [jdTechStack, setJdTechStack] = useState<string[]>([]);
   const [jdMustHave, setJdMustHave] = useState<string[]>([]);
@@ -512,7 +511,7 @@ export function TailorWizard({
 
   return (
     <div className="space-y-4">
-      <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+      <Card className="surface-card">
         <CardHeader>
           <CardTitle>Tailor flow</CardTitle>
           <CardDescription>
@@ -724,7 +723,7 @@ export function TailorWizard({
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+        <Card className="surface-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <div>
               <CardTitle>Resume bullets</CardTitle>
@@ -846,7 +845,7 @@ export function TailorWizard({
             </details>
           </CardContent>
         </Card>
-        <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+        <Card className="surface-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <div>
               <CardTitle>Cover letter</CardTitle>

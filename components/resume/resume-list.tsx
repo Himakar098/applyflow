@@ -41,7 +41,7 @@ export function ResumeList({
   const [deletingBusy, setDeletingBusy] = useState(false);
   if (resumes.length === 0) {
     return (
-      <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+      <Card className="surface-card">
         <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
           <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
             No resumes yet
@@ -58,7 +58,7 @@ export function ResumeList({
   }
 
   return (
-    <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+    <Card className="surface-card">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <div>
           <CardTitle className="text-lg">Stored resumes</CardTitle>
@@ -75,7 +75,7 @@ export function ResumeList({
             {resumes.map((resume) => (
               <div
                 key={resume.id}
-                className="flex items-center justify-between rounded-xl border px-4 py-3"
+                className="flex items-center justify-between rounded-xl border border-white/60 bg-white/70 px-4 py-3"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">

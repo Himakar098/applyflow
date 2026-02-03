@@ -38,9 +38,10 @@ export async function writeLog(uid: string, payload: LogPayload) {
 }
 
 export function hashIp(req: NextRequest): string | undefined {
+  const reqWithIp = req as NextRequest & { ip?: string };
   const raw =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    (req as any).ip ||
+    reqWithIp.ip ||
     undefined;
   if (!raw) return;
   return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 16);

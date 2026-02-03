@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 
 import { HttpError, verifyIdToken } from "@/lib/auth/verify-id-token";
 import { adminDb } from "@/lib/firebase/admin";
+import { normalizeProfile } from "@/lib/profile/normalize";
 
 export const runtime = "nodejs";
 
@@ -34,6 +35,11 @@ export async function POST(req: NextRequest) {
       throw new HttpError(400, "profileJson is required");
     }
 
+    const normalizedProfile = normalizeProfile(profileJson);
+    if (!normalizedProfile.email && decoded?.email) {
+      normalizedProfile.email = decoded.email;
+    }
+
     const userRef = adminDb.collection("users").doc(uid);
     await userRef.set(
       {
@@ -45,13 +51,13 @@ export async function POST(req: NextRequest) {
 
     await userRef.collection("profile").doc("current").set(
       {
-        profileJson,
+        profileJson: normalizedProfile,
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
     );
 
-    return NextResponse.json({ ok: true, profileJson, digest });
+    return NextResponse.json({ ok: true, profileJson: normalizedProfile, digest });
   } catch (error) {
     return handleError(error, digest);
   }

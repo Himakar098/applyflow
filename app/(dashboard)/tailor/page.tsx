@@ -204,7 +204,7 @@ export default function TailorPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+      <Card className="surface-card">
         <CardHeader>
           <CardTitle>Job Copilot</CardTitle>
           <CardDescription>
@@ -279,7 +279,7 @@ export default function TailorPage() {
           />
           {loadingHistory ? <Skeleton className="h-12 w-full rounded-lg" /> : null}
           {compareItem ? (
-            <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+            <Card className="surface-card">
               <CardHeader>
                 <CardTitle>Compare with current</CardTitle>
                 <CardDescription>

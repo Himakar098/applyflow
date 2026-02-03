@@ -1,4 +1,4 @@
-export type JobStatus = "applied" | "interview" | "rejected" | "ghosted" | "offer";
+export type JobStatus = "saved" | "applied" | "interview" | "rejected" | "ghosted" | "offer";
 
 export type JobSource =
   | "LinkedIn"
@@ -24,6 +24,7 @@ export type JobApplication = {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  checklist?: Record<string, boolean>;
 };
 
 export type JobDraft = Omit<JobApplication, "id" | "createdAt" | "updatedAt">;
@@ -80,6 +81,11 @@ export type Profile = {
   id?: string;
   fullName?: string;
   email?: string;
+  phone?: string;
+  location?: string;
+  linkedin?: string;
+  github?: string;
+  portfolio?: string;
   visaStatus?: string;
   targetRoles: string[];
   preferredLocations: string[];

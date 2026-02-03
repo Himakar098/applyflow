@@ -40,7 +40,7 @@ const sourceColors: Record<string, string> = {
 export function JobTable({ jobs, onEdit, onDelete }: JobTableProps) {
   if (jobs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-white px-6 py-10 text-center shadow-sm">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-white/70 px-6 py-10 text-center shadow-sm">
         <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
           No applications yet
         </div>
@@ -55,7 +55,7 @@ export function JobTable({ jobs, onEdit, onDelete }: JobTableProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-white shadow-sm shadow-slate-900/5">
+    <div className="surface-card overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
@@ -63,12 +63,13 @@ export function JobTable({ jobs, onEdit, onDelete }: JobTableProps) {
             <TableHead>Company</TableHead>
             <TableHead>Location</TableHead>
             <TableHead>Source</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Applied</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+          <TableHead>Status</TableHead>
+          <TableHead>Applied</TableHead>
+          <TableHead>Follow-up</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
           {jobs.map((job) => (
             <TableRow key={job.id} className="hover:bg-muted/40">
               <TableCell className="font-medium">{job.title}</TableCell>
@@ -93,6 +94,11 @@ export function JobTable({ jobs, onEdit, onDelete }: JobTableProps) {
               <TableCell className="text-sm text-muted-foreground">
                 {job.appliedDate
                   ? new Date(job.appliedDate).toLocaleDateString()
+                  : "—"}
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {job.followUpDate
+                  ? new Date(job.followUpDate).toLocaleDateString()
                   : "—"}
               </TableCell>
               <TableCell className="text-right">

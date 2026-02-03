@@ -8,6 +8,16 @@ type ProviderInput = {
   workModes: string[];
 };
 
+type AdzunaJob = {
+  id?: string | number;
+  redirect_url?: string;
+  title?: string;
+  company?: { display_name?: string };
+  location?: { display_name?: string };
+  description?: string;
+  created?: string;
+};
+
 export type Provider = {
   name: string;
   fetch: (input: ProviderInput) => Promise<ExternalJob[]>;
@@ -25,7 +35,7 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = DEFA
   }
 }
 
-function normalizeAdzuna(job: any): ExternalJob {
+function normalizeAdzuna(job: AdzunaJob): ExternalJob {
   return {
     id: String(job?.id ?? job?.redirect_url ?? randomUUID()),
     title: job?.title ?? "",

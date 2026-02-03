@@ -8,6 +8,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { extractResumeText } from "@/lib/resume/extract-text";
 import { hashIp, writeLog } from "@/lib/services/ai-logger";
 import { checkAndIncrementUsage } from "@/lib/services/usage-limits";
+import { normalizeProfile } from "@/lib/profile/normalize";
 
 export const runtime = "nodejs";
 
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
 
     const resumeText = await extractResumeText(file);
     const { profileJson, usage, model } = await extractProfile(resumeText);
+    const normalizedProfile = normalizeProfile(profileJson);
 
     const userRef = adminDb.collection("users").doc(uid);
     await userRef.set(
@@ -91,7 +93,7 @@ export async function POST(req: NextRequest) {
 
     await userRef.collection("profile").doc("current").set(
       {
-        profileJson,
+        profileJson: normalizedProfile,
         resumeText,
         updatedAt: FieldValue.serverTimestamp(),
       },
@@ -110,7 +112,7 @@ export async function POST(req: NextRequest) {
       ipHash: hashIp(req),
     });
 
-    return NextResponse.json({ ok: true, profileJson, digest });
+    return NextResponse.json({ ok: true, profileJson: normalizedProfile, digest });
   } catch (error) {
     if (error instanceof HttpError && error.message === "AI_NOT_CONFIGURED") {
       return handleError(error, digest);

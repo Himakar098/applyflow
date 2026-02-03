@@ -17,6 +17,27 @@ type SearchFilters = {
   page?: number;
 };
 
+type SerpApiJob = {
+  title?: string;
+  company_name?: string;
+  location?: string;
+  via?: string;
+  description?: string;
+  job_id?: string;
+  related_links?: { link?: string }[];
+  link?: string;
+  detected_extensions?: { posted_at?: string };
+};
+
+type AdzunaJob = {
+  title?: string;
+  company?: { display_name?: string };
+  location?: { display_name?: string };
+  description?: string;
+  redirect_url?: string;
+  created?: string;
+};
+
 function handleError(error: unknown, digest: string) {
   if (error instanceof HttpError) {
     return NextResponse.json(
@@ -96,7 +117,7 @@ export async function POST(req: NextRequest) {
       const res = await fetch(`https://serpapi.com/search.json?${params.toString()}`);
       if (!res.ok) throw new HttpError(502, "search_provider_error");
       const data = await res.json();
-      const results = (data.jobs_results || []).map((job: any) => ({
+      const results = (data.jobs_results || []).map((job: SerpApiJob) => ({
         title: job.title || "",
         company: job.company_name || "",
         location: job.location || "",
@@ -121,7 +142,7 @@ export async function POST(req: NextRequest) {
       const res = await fetch(`https://api.adzuna.com/v1/api/jobs/${country}/search/${page}?${params.toString()}`);
       if (!res.ok) throw new HttpError(502, "search_provider_error");
       const data = await res.json();
-      const results = (data.results || []).map((job: any) => ({
+      const results = (data.results || []).map((job: AdzunaJob) => ({
         title: job.title || "",
         company: job.company?.display_name || "",
         location: job.location?.display_name || "",

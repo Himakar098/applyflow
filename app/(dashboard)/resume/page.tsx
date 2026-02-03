@@ -52,21 +52,23 @@ export default function ResumePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-            Resumes
-          </p>
-          <h2 className="text-2xl font-semibold text-foreground">
-            Manage your resume library
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Upload PDFs, store them securely, and prepare for AI optimizations.
-          </p>
+      <div className="surface-panel hero-panel p-6 md:p-8">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+              Resumes
+            </p>
+            <h2 className="text-3xl font-semibold text-foreground">
+              Manage your resume library
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Upload PDFs, store them securely, and prepare for AI optimizations.
+            </p>
+          </div>
+          <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary">
+            ATS-safe storage
+          </Badge>
         </div>
-        <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary">
-          ATS-safe storage
-        </Badge>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-5">
@@ -76,7 +78,7 @@ export default function ResumePage() {
           />
         </div>
         <div className="lg:col-span-2">
-          <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+          <Card className="surface-card">
             <CardHeader>
               <CardTitle>Extracted text preview</CardTitle>
               <CardDescription>
@@ -91,7 +93,7 @@ export default function ResumePage() {
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="space-y-3 rounded-xl border px-4 py-3"
+                  className="space-y-3 rounded-xl border border-white/60 bg-white/70 px-4 py-3"
                 >
                   <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                     <Sparkles className="h-4 w-4" />

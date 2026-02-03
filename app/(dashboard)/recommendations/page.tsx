@@ -7,9 +7,11 @@ import { ArrowUpRight, EyeOff, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { getAuthHeader } from "@/lib/firebase/getIdToken";
+import { trackGamificationEvent } from "@/lib/gamification/client";
 
 type RecommendedJob = {
   id: string;
@@ -50,6 +52,7 @@ export default function RecommendationsPage() {
     () => items.filter((job) => job.matchScore >= 60 && job.matchScore < 80),
     [items],
   );
+  const savedCount = savedIds.length;
 
   const loadRecommendations = async () => {
     setLoading(true);
@@ -97,6 +100,7 @@ export default function RecommendationsPage() {
       if (data.id) {
         setSavedMap((prev) => ({ ...prev, [job.id]: data.id }));
       }
+      await trackGamificationEvent("recommendation_saved");
       toast({ title: "Saved to Job Tracker" });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Save failed";
@@ -124,7 +128,7 @@ export default function RecommendationsPage() {
     const isSaved = savedIds.includes(job.id);
     const workspaceId = savedMap[job.id];
     return (
-      <Card key={job.id} className="border-0 bg-white shadow-sm shadow-slate-900/5">
+      <Card key={job.id} className="surface-card">
         <CardHeader>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -179,21 +183,36 @@ export default function RecommendationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-            Recommendations
-          </p>
-          <h2 className="text-2xl font-semibold text-foreground">
-            Recommended for you
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Curated roles based on your profile and preferences.
-          </p>
-        </div>
-        <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-          <Sparkles className="h-4 w-4" />
-          {date ? `Updated ${date}` : "Updated daily"}
+      <div className="surface-panel hero-panel p-6 md:p-8">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+              Recommendations
+            </p>
+            <h2 className="text-3xl font-semibold text-foreground">Your strongest matches today.</h2>
+            <p className="text-sm text-muted-foreground">
+              We score jobs against your profile and explain why each role fits.
+            </p>
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              <Sparkles className="h-4 w-4" />
+              {date ? `Updated ${date}` : "Updated daily"}
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="surface-card px-4 py-3">
+              <p className="text-xs text-muted-foreground">Strong matches</p>
+              <p className="text-lg font-semibold text-foreground">{strong.length}</p>
+            </div>
+            <div className="surface-card px-4 py-3">
+              <p className="text-xs text-muted-foreground">Saved today</p>
+              <p className="text-lg font-semibold text-foreground">{savedCount}</p>
+              <Progress value={Math.min(100, (savedCount / 2) * 100)} className="mt-2 h-2" />
+            </div>
+            <div className="surface-card px-4 py-3">
+              <p className="text-xs text-muted-foreground">Matches total</p>
+              <p className="text-lg font-semibold text-foreground">{items.length}</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -204,7 +223,7 @@ export default function RecommendationsPage() {
           ))}
         </div>
       ) : missingPrefs.length ? (
-        <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+        <Card className="surface-card">
           <CardHeader>
             <CardTitle>Set preferences to get recommendations</CardTitle>
             <CardDescription>
@@ -223,7 +242,7 @@ export default function RecommendationsPage() {
           </CardContent>
         </Card>
       ) : items.length === 0 ? (
-        <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+        <Card className="surface-card">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             No recommendations available right now. Check back tomorrow.
           </CardContent>

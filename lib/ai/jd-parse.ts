@@ -2,7 +2,6 @@ import OpenAI from "openai";
 import { z } from "zod";
 
 import type { ParsedJD } from "@/lib/jobs/jd-parse";
-import { HttpError } from "@/lib/auth/verify-id-token";
 
 const openaiApiKey = process.env.OPENAI_API_KEY;
 const useOpenAI = process.env.JD_PARSE_USE_OPENAI === "true" && !!openaiApiKey;

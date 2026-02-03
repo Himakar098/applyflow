@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { JobApplication, JobDraft, JobStatus } from "@/lib/types";
 
 const statuses: JobStatus[] = [
+  "saved",
   "applied",
   "interview",
   "ghosted",
@@ -79,8 +80,8 @@ export function JobForm({
       title: "",
       location: "",
       source: "LinkedIn",
-      status: "applied",
-      appliedDate: new Date().toISOString().slice(0, 10),
+      status: "saved",
+      appliedDate: "",
       followUpDate: "",
       notes: "",
       jobDescription: "",
@@ -97,7 +98,7 @@ export function JobForm({
         title: defaultValues.title ?? "",
         location: defaultValues.location ?? "",
         source: defaultValues.source ?? "LinkedIn",
-        status: (defaultValues.status as JobStatus) ?? "applied",
+        status: (defaultValues.status as JobStatus) ?? "saved",
         appliedDate: defaultValues.appliedDate ?? "",
         followUpDate: defaultValues.followUpDate ?? "",
         notes: defaultValues.notes ?? "",
@@ -118,8 +119,8 @@ export function JobForm({
         title: "",
         location: "",
         source: "LinkedIn",
-        status: "applied",
-        appliedDate: new Date().toISOString().slice(0, 10),
+        status: "saved",
+        appliedDate: "",
         followUpDate: "",
         notes: "",
         jobDescription: "",

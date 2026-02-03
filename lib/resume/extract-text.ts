@@ -14,7 +14,7 @@ function normalize(text: string) {
 }
 
 function ensurePdfPolyfills() {
-  const g: any = globalThis as any;
+  const g = globalThis as Record<string, unknown>;
   if (typeof g.DOMMatrix === "undefined") g.DOMMatrix = class DOMMatrix {};
   if (typeof g.DOMMatrixReadOnly === "undefined") g.DOMMatrixReadOnly = g.DOMMatrix;
   if (typeof g.Path2D === "undefined") g.Path2D = class Path2D {};
@@ -29,8 +29,16 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
   try {
     ensurePdfPolyfills();
     process.env.PDFJS_DISABLE_WORKER = "true";
-    const pdfjsLib: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
-    const pdf = pdfjsLib?.default ?? pdfjsLib;
+    type PdfTextItem = { str?: string };
+    type PdfPage = { getTextContent: () => Promise<{ items: PdfTextItem[] }> };
+    type PdfDoc = { numPages: number; getPage: (n: number) => Promise<PdfPage>; cleanup?: () => void | Promise<void> };
+    type PdfJs = {
+      GlobalWorkerOptions?: { workerSrc?: string };
+      getDocument: (config: { data: Buffer; useWorker: boolean; disableFontFace: boolean }) => { promise: Promise<PdfDoc> };
+    };
+
+    const pdfjsLib = (await import("pdfjs-dist/legacy/build/pdf.mjs")) as unknown as { default?: PdfJs };
+    const pdf = (pdfjsLib?.default ?? pdfjsLib) as PdfJs;
     if (pdf?.GlobalWorkerOptions) {
       pdf.GlobalWorkerOptions.workerSrc = undefined;
     }
@@ -44,7 +52,7 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
     for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
       const page = await doc.getPage(pageNum);
       const content = await page.getTextContent();
-      const pageText = content.items.map((item: any) => item?.str ?? "").join(" ");
+      const pageText = content.items.map((item) => item?.str ?? "").join(" ");
       texts.push(pageText);
     }
     await doc.cleanup?.();

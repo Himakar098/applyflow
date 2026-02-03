@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { DocumentVault } from "@/components/settings/document-vault";
@@ -19,53 +19,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { getAuthHeader } from "@/lib/firebase/getIdToken";
+import { trackGamificationEvent } from "@/lib/gamification/client";
 import type { Profile } from "@/lib/types";
-
-const emptyProfile = (): Profile => ({
-  fullName: "",
-  email: "",
-  visaStatus: "",
-  targetRoles: [],
-  preferredLocations: [],
-  preferredWorkModes: [],
-  preferredSeniority: [],
-  yearsExperienceApprox: undefined,
-  skills: { languages: [], tools: [], cloud: [], databases: [] },
-  workExperience: [],
-  projects: [],
-  education: [],
-  certifications: [],
-  hobbies: [],
-  preferredTitles: [],
-});
-
-function normalizeProfile(data?: Partial<Profile>): Profile {
-  const base = emptyProfile();
-  const skills = data?.skills ?? base.skills;
-  return {
-    ...base,
-    ...data,
-    skills: {
-      languages: skills.languages ?? [],
-      tools: skills.tools ?? [],
-      cloud: skills.cloud ?? [],
-      databases: skills.databases ?? [],
-    },
-    targetRoles: data?.targetRoles ?? base.targetRoles,
-    preferredLocations: data?.preferredLocations ?? base.preferredLocations,
-    preferredWorkModes: data?.preferredWorkModes ?? base.preferredWorkModes,
-    preferredSeniority: data?.preferredSeniority ?? base.preferredSeniority,
-    workExperience: data?.workExperience ?? base.workExperience,
-    projects: data?.projects ?? base.projects,
-    education: data?.education ?? base.education,
-    certifications: data?.certifications ?? base.certifications,
-    hobbies: data?.hobbies ?? base.hobbies,
-    preferredTitles: data?.preferredTitles ?? base.preferredTitles,
-  };
-}
+import { emptyProfile, normalizeProfile } from "@/lib/profile/normalize";
 
 function computeReadiness(profile: Profile) {
   const checks = {
+    contact: Boolean(profile.fullName) && Boolean(profile.email || profile.phone),
     roles: profile.targetRoles.length > 0,
     locations: profile.preferredLocations.length > 0,
     projects: profile.projects.length >= 2,
@@ -78,6 +38,7 @@ function computeReadiness(profile: Profile) {
   const total = Object.keys(checks).length;
   const passed = Object.values(checks).filter(Boolean).length;
   const missing: string[] = [];
+  if (!checks.contact) missing.push("Add name + email or phone");
   if (!checks.roles) missing.push("Add target roles");
   if (!checks.locations) missing.push("Add preferred locations");
   if (!checks.projects) missing.push("Add at least 2 projects");
@@ -96,7 +57,7 @@ export default function SettingsPage() {
 
   const readiness = useMemo(() => computeReadiness(profile), [profile]);
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       const headers = await getAuthHeader();
       if (!headers) return;
@@ -120,7 +81,7 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     void loadProfile();
@@ -138,7 +99,7 @@ export default function SettingsPage() {
       }
     };
     void loadAiStatus();
-  }, []);
+  }, [loadProfile]);
 
   const saveProfile = async () => {
     try {
@@ -161,6 +122,7 @@ export default function SettingsPage() {
       if (!res.ok) {
         throw new Error(data?.error || "Unable to save profile");
       }
+      await trackGamificationEvent("profile_saved");
       toast({ title: "Profile saved", description: "Your profile builder details are up to date." });
     } catch (error) {
       console.error(error);
@@ -193,7 +155,7 @@ export default function SettingsPage() {
           <ProfileBuilder profile={profile} onChange={setProfile} />
         )}
 
-        <Card className="h-fit border-0 bg-white shadow-sm shadow-slate-900/5">
+        <Card className="surface-card h-fit">
           <CardHeader>
             <CardTitle>Profile readiness</CardTitle>
             <CardDescription>Checklist used to boost generation quality.</CardDescription>
@@ -247,7 +209,7 @@ export default function SettingsPage() {
         </Card>
       ) : null}
 
-      <DocumentVault className="border-0 bg-white shadow-sm shadow-slate-900/5" />
+      <DocumentVault className="surface-card" />
     </div>
   );
 }

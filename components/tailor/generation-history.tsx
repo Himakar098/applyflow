@@ -76,7 +76,7 @@ export function GenerationHistory({
   );
 
   return (
-    <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+    <Card className="surface-card">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle>Recent generations</CardTitle>
         {onRefresh ? (

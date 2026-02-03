@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       company,
       location: job.location ?? "",
       source: job.source ?? "external",
-      status: "applied",
+      status: "saved",
       appliedDate: "",
       jobDescription: description,
       jobUrl: job.url ?? job.sourceUrl ?? "",

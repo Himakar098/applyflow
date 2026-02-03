@@ -3,6 +3,7 @@ import type { JobStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const styles: Record<JobStatus, string> = {
+  saved: "bg-slate-50 text-slate-700 ring-1 ring-slate-200",
   applied: "bg-sky-50 text-sky-800 ring-1 ring-sky-100",
   interview: "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100",
   rejected: "bg-rose-50 text-rose-700 ring-1 ring-rose-100",
@@ -11,6 +12,7 @@ const styles: Record<JobStatus, string> = {
 };
 
 const labels: Record<JobStatus, string> = {
+  saved: "Saved",
   applied: "Applied",
   interview: "Interview",
   rejected: "Rejected",

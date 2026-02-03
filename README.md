@@ -101,6 +101,7 @@ service cloud.firestore {
       match /resumes/{resumeId} { allow read, write, delete: if request.auth != null && request.auth.uid == uid; }
       match /documents/{docId} { allow read, write, delete: if request.auth != null && request.auth.uid == uid; }
       match /recommendations/{dateKey} { allow read, write: if request.auth != null && request.auth.uid == uid; }
+      match /gamification/{docId} { allow read, write: if request.auth != null && request.auth.uid == uid; }
       match /usage/{dateKey} { allow read, write: if request.auth != null && request.auth.uid == uid; }
       match /logs/{logId} { allow read, write: if request.auth != null && request.auth.uid == uid; }
     }

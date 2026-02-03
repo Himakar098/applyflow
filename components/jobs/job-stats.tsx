@@ -12,7 +12,7 @@ type StatCardProps = {
 
 function StatCard({ title, value, icon, description }: StatCardProps) {
   return (
-    <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+    <Card className="surface-card">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
@@ -28,35 +28,35 @@ function StatCard({ title, value, icon, description }: StatCardProps) {
 }
 
 export function JobStats({ jobs }: { jobs: JobApplication[] }) {
-  const applied = jobs.length;
+  const saved = jobs.filter((j) => j.status === "saved").length;
+  const applied = jobs.filter((j) => j.status === "applied").length;
   const interviewing = jobs.filter((j) => j.status === "interview").length;
   const offers = jobs.filter((j) => j.status === "offer").length;
-  const stalled = jobs.filter((j) => j.status === "ghosted").length;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <StatCard
-        title="Total applications"
-        value={applied}
-        description="Active submissions"
+        title="Saved roles"
+        value={saved}
+        description="Ready to apply"
         icon={<Briefcase className="h-5 w-5 text-primary" />}
+      />
+      <StatCard
+        title="Applied"
+        value={applied}
+        description="Submitted"
+        icon={<Clock className="h-5 w-5 text-amber-500" />}
       />
       <StatCard
         title="Interviews"
         value={interviewing}
         description="In conversations"
-        icon={<Clock className="h-5 w-5 text-amber-500" />}
+        icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />}
       />
       <StatCard
         title="Offers"
         value={offers}
         description="Offers received"
-        icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />}
-      />
-      <StatCard
-        title="Follow-ups"
-        value={stalled}
-        description="Pending responses"
         icon={<HandMetal className="h-5 w-5 text-indigo-500" />}
       />
     </div>

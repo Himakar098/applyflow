@@ -42,7 +42,7 @@ export function ProfileEditor({ value, onChange, onValidJson }: ProfileEditorPro
   };
 
   return (
-    <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+    <Card className="surface-card">
       <CardHeader>
         <CardTitle>Profile JSON</CardTitle>
         <CardDescription>Edit the structured profile. Keep it ATS-safe.</CardDescription>

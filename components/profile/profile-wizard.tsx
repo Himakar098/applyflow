@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, FileUp, ListChecks, Loader2, ShieldCheck, TriangleAlert } from "lucide-react";
+import { CheckCircle2, ListChecks, Loader2, ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,11 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { getAuthHeader } from "@/lib/firebase/getIdToken";
-import { ProfileEditor } from "@/components/profile/profile-editor";
+import { ProfileBuilder } from "@/components/settings/profile-builder";
+import { emptyProfile, normalizeProfile } from "@/lib/profile/normalize";
+import type { Profile } from "@/lib/types";
+import { fetchGamificationDaily, trackGamificationEvent } from "@/lib/gamification/client";
 
 type ProfileWizardProps = {
-  initialProfileText?: string;
-  onSaved?: (profile: unknown) => void;
+  initialProfile?: Profile;
+  onSaved?: (profile: Profile) => void;
 };
 
 type ProfileReadiness = {
@@ -22,14 +25,27 @@ type ProfileReadiness = {
   score: number;
 };
 
+type ReadinessInput = {
+  fullName?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  contact?: { name?: string; email?: string; phone?: string };
+  targetRoles?: string[];
+  projects?: unknown[];
+  workExperience?: { role?: string; title?: string }[];
+  experience?: { role?: string; title?: string }[];
+  skills?: { languages?: string[]; tools?: string[]; cloud?: string[]; databases?: string[] };
+};
+
 function evaluateReadiness(profile: Record<string, unknown>): ProfileReadiness {
-  const p = profile as any;
+  const p = profile as ReadinessInput;
   const missing: string[] = [];
   let score = 0;
 
-  const name = p?.contact?.name ?? p?.name;
-  const email = p?.contact?.email ?? p?.email;
-  const phone = p?.contact?.phone ?? p?.phone;
+  const name = p?.fullName ?? p?.contact?.name ?? p?.name;
+  const email = p?.email ?? p?.contact?.email;
+  const phone = p?.phone ?? p?.contact?.phone;
   const targetRoles = Array.isArray(p?.targetRoles) ? p.targetRoles : [];
   const projects = Array.isArray(p?.projects) ? p.projects : [];
   const workExperience = Array.isArray(p?.workExperience)
@@ -77,14 +93,18 @@ function evaluateReadiness(profile: Record<string, unknown>): ProfileReadiness {
   return { ready: missing.length === 0, missing, score };
 }
 
-export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizardProps) {
+export function ProfileWizard({ initialProfile, onSaved }: ProfileWizardProps) {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
-  const [profileText, setProfileText] = useState<string>(initialProfileText);
+  const [profile, setProfile] = useState<Profile>(normalizeProfile(initialProfile) ?? emptyProfile());
+  const [extractedProfile, setExtractedProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [resumeProgress, setResumeProgress] = useState(0);
   const [aiEnabled, setAiEnabled] = useState(true);
+  const [dailyXp, setDailyXp] = useState(0);
+  const [lifetimeXp, setLifetimeXp] = useState(0);
+  const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     const loadAiStatus = async () => {
@@ -100,64 +120,95 @@ export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizar
         // ignore
       }
     };
+    const loadGamification = async () => {
+      const state = await fetchGamificationDaily();
+      if (!state) return;
+      setDailyXp(state.daily.xp ?? 0);
+      setLifetimeXp(state.meta.lifetimeXp ?? 0);
+      setStreak(state.meta.streak ?? 0);
+    };
     void loadAiStatus();
+    void loadGamification();
   }, []);
 
-  const readiness = useMemo(() => {
-    try {
-      const parsed = JSON.parse(profileText || "{}");
-      return evaluateReadiness(parsed);
-    } catch {
-      return { ready: false, missing: ["valid JSON"], score: 0 };
+  useEffect(() => {
+    if (initialProfile) {
+      setProfile(normalizeProfile(initialProfile));
     }
-  }, [profileText]);
+  }, [initialProfile]);
+
+  const readiness = useMemo(() => evaluateReadiness(profile as unknown as Record<string, unknown>), [profile]);
+
+  const level = Math.max(1, Math.floor(lifetimeXp / 200) + 1);
+  const nextLevelAt = level * 200;
+  const xpToNext = Math.max(0, nextLevelAt - lifetimeXp);
+  const missionItems =
+    readiness.missing.length > 0
+      ? readiness.missing.slice(0, 3)
+      : ["Add a fresh accomplishment", "Review target roles", "Save latest profile"];
 
   const fillFromExtract = () => {
-    try {
-      const parsed = JSON.parse(profileText || "{}") as any;
-      const enriched = { ...parsed };
-
-      if (!Array.isArray(enriched.targetRoles)) {
-        const headline = (enriched.headline || "").toString();
-        enriched.targetRoles = headline ? [headline] : [];
-      }
-
-      if (!Array.isArray(enriched.preferredLocations)) {
-        enriched.preferredLocations = enriched.contact?.location ? [enriched.contact.location] : [];
-      }
-
-      if (!enriched.yearsExperienceApprox && Array.isArray(enriched.workExperience)) {
-        enriched.yearsExperienceApprox = enriched.workExperience.length;
-      }
-
-      if (!enriched.skills || typeof enriched.skills !== "object") {
-        if (Array.isArray(enriched.skills)) {
-          enriched.skills = { tools: enriched.skills, languages: [], cloud: [], databases: [] };
-        } else {
-          enriched.skills = { tools: [], languages: [], cloud: [], databases: [] };
-        }
-      }
-
-      if (!Array.isArray(enriched.workExperience) && Array.isArray(enriched.experience)) {
-        enriched.workExperience = enriched.experience.map((exp: any) => ({
-          company: exp.company,
-          role: exp.title,
-          startDate: exp.startDate,
-          endDate: exp.endDate,
-          bullets: exp.achievements ?? [],
-          tools: exp.tools ?? [],
-        }));
-      }
-
-      if (!Array.isArray(enriched.projects)) {
-        enriched.projects = [];
-      }
-
-      setProfileText(JSON.stringify(enriched, null, 2));
-      toast({ title: "Filled missing fields", description: "Seeded from resume extract." });
-    } catch {
-      toast({ title: "Invalid JSON", description: "Fix JSON before auto-filling.", variant: "destructive" });
+    if (!extractedProfile) {
+      toast({
+        title: "Extract a resume first",
+        description: "Upload and extract a resume to auto-fill missing fields.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    const merged: Profile = {
+      ...profile,
+      fullName: profile.fullName || extractedProfile.fullName,
+      email: profile.email || extractedProfile.email,
+      phone: profile.phone || extractedProfile.phone,
+      location: profile.location || extractedProfile.location,
+      linkedin: profile.linkedin || extractedProfile.linkedin,
+      github: profile.github || extractedProfile.github,
+      portfolio: profile.portfolio || extractedProfile.portfolio,
+      visaStatus: profile.visaStatus || extractedProfile.visaStatus,
+      targetRoles: profile.targetRoles.length ? profile.targetRoles : extractedProfile.targetRoles,
+      preferredLocations: profile.preferredLocations.length
+        ? profile.preferredLocations
+        : extractedProfile.preferredLocations,
+      preferredWorkModes: profile.preferredWorkModes?.length
+        ? profile.preferredWorkModes
+        : extractedProfile.preferredWorkModes,
+      preferredSeniority: profile.preferredSeniority?.length
+        ? profile.preferredSeniority
+        : extractedProfile.preferredSeniority,
+      yearsExperienceApprox:
+        profile.yearsExperienceApprox ?? extractedProfile.yearsExperienceApprox,
+      skills: {
+        languages: profile.skills.languages.length
+          ? profile.skills.languages
+          : extractedProfile.skills.languages,
+        tools: profile.skills.tools.length
+          ? profile.skills.tools
+          : extractedProfile.skills.tools,
+        cloud: profile.skills.cloud.length
+          ? profile.skills.cloud
+          : extractedProfile.skills.cloud,
+        databases: profile.skills.databases.length
+          ? profile.skills.databases
+          : extractedProfile.skills.databases,
+      },
+      workExperience: profile.workExperience.length
+        ? profile.workExperience
+        : extractedProfile.workExperience,
+      projects: profile.projects.length ? profile.projects : extractedProfile.projects,
+      education: profile.education.length ? profile.education : extractedProfile.education,
+      certifications: profile.certifications.length
+        ? profile.certifications
+        : extractedProfile.certifications,
+      hobbies: profile.hobbies?.length ? profile.hobbies : extractedProfile.hobbies,
+      preferredTitles: profile.preferredTitles?.length
+        ? profile.preferredTitles
+        : extractedProfile.preferredTitles,
+    };
+
+    setProfile(merged);
+    toast({ title: "Filled missing fields", description: "Seeded from resume extract." });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,7 +250,9 @@ export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizar
         throw new Error(data.error || "Unable to extract profile");
       }
       setResumeProgress(90);
-      setProfileText(JSON.stringify(data.profileJson ?? {}, null, 2));
+      const normalized = normalizeProfile(data.profileJson ?? {});
+      setProfile(normalized);
+      setExtractedProfile(normalized);
       toast({ title: "Profile extracted", description: "Review and finalize edits." });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Extract failed";
@@ -223,27 +276,25 @@ export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizar
       return;
     }
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(profileText || "{}");
-    } catch {
-      toast({ title: "Invalid JSON", description: "Fix JSON before saving.", variant: "destructive" });
-      return;
-    }
-
     setSaving(true);
     try {
       const res = await fetch("/api/profile/save", {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ profileJson: parsed }),
+        body: JSON.stringify({ profileJson: profile }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Unable to save profile");
       }
+      const state = await trackGamificationEvent("profile_saved");
+      if (state) {
+        setDailyXp(state.daily.xp ?? 0);
+        setLifetimeXp(state.meta.lifetimeXp ?? 0);
+        setStreak(state.meta.streak ?? 0);
+      }
       toast({ title: "Profile saved" });
-      onSaved?.(parsed);
+      onSaved?.(profile);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Save failed";
       toast({ title: "Save failed", description: message, variant: "destructive" });
@@ -253,24 +304,68 @@ export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizar
   };
 
   return (
-    <div className="space-y-4">
-      <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
-        <CardHeader>
-          <CardTitle>Profile wizard</CardTitle>
-          <CardDescription>Upload, extract, edit, and validate your profile.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          {!aiEnabled ? (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              AI extraction is disabled until an OpenAI key is configured. You can still build your profile manually.
+    <div className="space-y-6">
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="surface-card p-5 lg:col-span-2">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+                Profile Power
+              </p>
+              <h3 className="text-2xl font-semibold text-foreground">
+                Level {level} • {dailyXp} XP today
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {streak > 0
+                  ? `${streak} day streak active.`
+                  : "Start a streak by completing today’s missions."}{" "}
+                Earn {xpToNext} XP to reach Level {level + 1}.
+              </p>
             </div>
-          ) : null}
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <FileUp className="h-4 w-4 text-primary" />
-                Step 1 — Upload resume
+            <div className="min-w-[220px] space-y-2">
+              <Progress value={Math.min(100, (lifetimeXp / nextLevelAt) * 100)} className="h-2" />
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Level progress</span>
+                <span>
+                  {lifetimeXp}/{nextLevelAt} XP
+                </span>
               </div>
+            </div>
+          </div>
+        </div>
+        <div className="surface-card p-5">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <ListChecks className="h-4 w-4 text-primary" />
+            Daily missions
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Complete missions to unlock stronger recommendations.
+          </p>
+          <ul className="mt-3 space-y-2 text-sm">
+            {missionItems.map((item) => (
+              <li key={item} className="flex items-center gap-2 rounded-lg border border-white/50 bg-white/70 px-3 py-2">
+                <span className="h-2 w-2 rounded-full bg-primary" />
+                <span className="text-muted-foreground">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {!aiEnabled ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          AI extraction is disabled until an OpenAI key is configured. You can still build your profile manually.
+        </div>
+      ) : null}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="surface-card">
+          <CardHeader>
+            <CardTitle>Step 1 — Upload & extract</CardTitle>
+            <CardDescription>Resume text becomes structured profile data.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
               <Label htmlFor="resume-upload">Resume (PDF or DOCX)</Label>
               <input
                 id="resume-upload"
@@ -287,17 +382,18 @@ export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizar
                 Extract profile
               </Button>
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <ShieldCheck className="h-4 w-4 text-primary" />
-                Steps 3 & 4 — Edit and validate
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Once extracted, edit the JSON and save. We’ll check readiness before tailoring.
-              </p>
+            <div className="flex items-center gap-2 rounded-lg border border-white/60 bg-white/70 px-3 py-2 text-xs text-muted-foreground">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              We only extract facts that appear in your resume. No fabrication.
             </div>
-          </div>
-          <div className="space-y-4">
+          </CardContent>
+        </Card>
+        <Card className="surface-card">
+          <CardHeader>
+            <CardTitle>Step 2 — Validate readiness</CardTitle>
+            <CardDescription>Fix missing fields and unlock tailoring.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <ListChecks className="h-4 w-4 text-primary" />
               Readiness checklist
@@ -313,17 +409,14 @@ export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizar
                 </span>
               )}
               <span className="ml-auto text-xs text-muted-foreground">Score: {readiness.score}/100</span>
-              <Button size="sm" variant="outline" onClick={fillFromExtract}>
-                Fill from resume extract
-              </Button>
             </div>
-            <ul className="space-y-1 text-sm">
+            <ul className="space-y-2 text-sm">
               {["name", "email or phone", "target roles", "at least 2 projects", "work experience", "skills (grouped)"].map((item) => {
                 const missing = readiness.missing.includes(item);
                 return (
                   <li
                     key={item}
-                    className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+                    className="flex items-center gap-2 rounded-lg border border-white/60 bg-white/70 px-3 py-2 text-sm"
                   >
                     {missing ? (
                       <TriangleAlert className="h-4 w-4 text-amber-600" />
@@ -337,16 +430,20 @@ export function ProfileWizard({ initialProfileText = "", onSaved }: ProfileWizar
                 );
               })}
             </ul>
-          </div>
-          <ProfileEditor value={profileText} onChange={setProfileText} />
-          <div className="flex justify-end">
-            <Button onClick={saveProfile} disabled={saving}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Save profile
+            <Button size="sm" variant="outline" onClick={fillFromExtract}>
+              Fill from resume extract
             </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+
+      <ProfileBuilder profile={profile} onChange={setProfile} />
+      <div className="flex justify-end">
+        <Button onClick={saveProfile} disabled={saving}>
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Save profile
+        </Button>
+      </div>
     </div>
   );
 }

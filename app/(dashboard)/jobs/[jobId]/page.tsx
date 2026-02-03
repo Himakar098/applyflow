@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExternalLink, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { getAuthHeader } from "@/lib/firebase/getIdToken";
+import { trackGamificationEvent } from "@/lib/gamification/client";
 
 type JobItem = {
   id: string;
@@ -24,9 +26,8 @@ type JobItem = {
   notes?: string;
   jobUrl?: string;
   applicationUrl?: string;
+  checklist?: Record<string, boolean>;
 };
-
-type GenerationOutput = { resumeBullets: string[]; coverLetter: string };
 
 export default function JobWorkspacePage({ params }: { params: { jobId: string } }) {
   const { toast } = useToast();
@@ -43,6 +44,21 @@ export default function JobWorkspacePage({ params }: { params: { jobId: string }
   const [profileFields, setProfileFields] = useState<Record<string, string>>({});
   const [aiEnabled, setAiEnabled] = useState(true);
   const [parsingJd, setParsingJd] = useState(false);
+  const [checklistState, setChecklistState] = useState<Record<string, boolean>>({});
+
+  const checklistItems = useMemo(
+    () => [
+      "Review tailored bullets",
+      "Review cover letter",
+      "Save PDF/DOCX exports",
+      "Open application page",
+      "Fill form fields manually",
+      "Submit application",
+      "Update status in tracker",
+      "Set follow-up reminder date",
+    ],
+    [],
+  );
 
   const jobId = params.jobId;
 
@@ -91,15 +107,17 @@ export default function JobWorkspacePage({ params }: { params: { jobId: string }
         const res = await fetch("/api/profile/current", { headers });
         if (!res.ok) return;
         const data = await res.json();
-        const contact = data.profileJson?.contact ?? {};
+        const profileJson = data.profileJson ?? {};
+        const contact = profileJson?.contact ?? {};
+        const links = profileJson?.links ?? {};
         setProfileFields({
-          name: contact.name || "",
-          email: contact.email || "",
-          phone: contact.phone || "",
-          location: contact.location || "",
-          linkedin: data.profileJson?.linkedin || data.profileJson?.links?.linkedin || "",
-          github: data.profileJson?.github || data.profileJson?.links?.github || "",
-          portfolio: data.profileJson?.portfolio || data.profileJson?.links?.portfolio || "",
+          name: profileJson.fullName || contact.name || "",
+          email: profileJson.email || contact.email || "",
+          phone: profileJson.phone || contact.phone || "",
+          location: profileJson.location || contact.location || "",
+          linkedin: profileJson.linkedin || links.linkedin || "",
+          github: profileJson.github || links.github || "",
+          portfolio: profileJson.portfolio || links.portfolio || "",
         });
       } catch {
         // ignore
@@ -147,6 +165,45 @@ export default function JobWorkspacePage({ params }: { params: { jobId: string }
     void parseJd();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId, job?.jobDescription]);
+
+  useEffect(() => {
+    if (!job) return;
+    const existing = job.checklist ?? {};
+    const initial: Record<string, boolean> = {};
+    checklistItems.forEach((item) => {
+      initial[item] = Boolean(existing[item]);
+    });
+    setChecklistState(initial);
+  }, [job, checklistItems]);
+
+  const toggleChecklist = async (item: string) => {
+    const previous = { ...checklistState };
+    const next = { ...checklistState, [item]: !checklistState[item] };
+    setChecklistState(next);
+
+    try {
+      const headers = await getAuthHeader();
+      if (!headers) return;
+      await fetch(`/api/jobs/${jobId}`, {
+        method: "PATCH",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ checklist: next }),
+      });
+    } catch (error) {
+      setChecklistState(previous);
+      const message = error instanceof Error ? error.message : "Unable to save checklist";
+      toast({ title: "Checklist save failed", description: message, variant: "destructive" });
+    }
+
+    const nextCompleted = checklistItems.filter((check) => next[check]).length;
+    const prevCompleted = checklistItems.filter((check) => previous[check]).length;
+    if (nextCompleted === checklistItems.length && prevCompleted < checklistItems.length) {
+      await trackGamificationEvent("apply_checklist_complete", jobId);
+    }
+  };
+
+  const completedCount = checklistItems.filter((item) => checklistState[item]).length;
+  const progress = Math.round((completedCount / checklistItems.length) * 100);
 
   const exportPack = () => {
     const content = [
@@ -238,19 +295,38 @@ export default function JobWorkspacePage({ params }: { params: { jobId: string }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-            Job workspace
-          </p>
-          <h2 className="text-2xl font-semibold text-foreground">
-            {job.title} @ {job.company}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Status: {job.status || "—"} • Source: {job.source || "—"} • Location: {job.location || "—"}
-          </p>
+      <div className="surface-panel hero-panel p-6 md:p-8">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+              Job workspace
+            </p>
+            <h2 className="text-3xl font-semibold text-foreground">
+              {job.title} @ {job.company}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Status: {job.status || "—"} • Source: {job.source || "—"} • Location: {job.location || "—"}
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="surface-card px-4 py-3">
+              <p className="text-xs text-muted-foreground">Apply progress</p>
+              <p className="text-lg font-semibold text-foreground">{progress}%</p>
+              <Progress value={progress} className="mt-2 h-2" />
+            </div>
+            <div className="surface-card px-4 py-3">
+              <p className="text-xs text-muted-foreground">Tasks done</p>
+              <p className="text-lg font-semibold text-foreground">{completedCount}/{checklistItems.length}</p>
+            </div>
+            <div className="surface-card px-4 py-3">
+              <p className="text-xs text-muted-foreground">Output ready</p>
+              <p className="text-lg font-semibold text-foreground">
+                {bullets.length || coverLetter ? "Yes" : "No"}
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => router.push(`/tailor?jobId=${job.id}`)}>
             Open in Tailor
           </Button>
@@ -271,7 +347,7 @@ export default function JobWorkspacePage({ params }: { params: { jobId: string }
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+        <Card className="surface-card">
           <CardHeader>
             <CardTitle>Job description</CardTitle>
             <CardDescription>Reference JD for this application.</CardDescription>
@@ -290,7 +366,7 @@ export default function JobWorkspacePage({ params }: { params: { jobId: string }
           </CardContent>
         </Card>
 
-        <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+        <Card className="surface-card">
           <CardHeader>
             <CardTitle>Application details</CardTitle>
             <CardDescription>Quick metadata for this job.</CardDescription>
@@ -321,7 +397,7 @@ export default function JobWorkspacePage({ params }: { params: { jobId: string }
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="border-0 bg-white shadow-sm shadow-slate-900/5 lg:col-span-2">
+        <Card className="surface-card lg:col-span-2">
           <CardHeader>
             <CardTitle>Requirements & keywords</CardTitle>
             <CardDescription>Parsed from the JD for quick reference.</CardDescription>
@@ -358,7 +434,7 @@ export default function JobWorkspacePage({ params }: { params: { jobId: string }
             </div>
           </CardContent>
         </Card>
-        <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+        <Card className="surface-card">
           <CardHeader>
             <CardTitle>Application data helper</CardTitle>
             <CardDescription>Quick copy fields for forms.</CardDescription>
@@ -390,31 +466,28 @@ export default function JobWorkspacePage({ params }: { params: { jobId: string }
         </Card>
       </div>
 
-      <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+      <Card className="surface-card">
         <CardHeader>
           <CardTitle>Guided apply checklist</CardTitle>
           <CardDescription>Complete these steps before submitting.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-2 text-sm text-muted-foreground">
-          {[
-            "Review tailored bullets",
-            "Review cover letter",
-            "Save PDF/DOCX exports",
-            "Open application page",
-            "Fill form fields manually",
-            "Submit application",
-            "Update status in tracker",
-            "Set follow-up reminder date",
-          ].map((item) => (
-            <label key={item} className="flex items-center gap-2">
-              <input type="checkbox" name={item} className="h-4 w-4" />
+          {checklistItems.map((item) => (
+            <label key={item} className="flex items-center gap-2 rounded-lg border border-white/60 bg-white/70 px-3 py-2">
+              <input
+                type="checkbox"
+                name={item}
+                className="h-4 w-4"
+                checked={Boolean(checklistState[item])}
+                onChange={() => toggleChecklist(item)}
+              />
               {item}
             </label>
           ))}
         </CardContent>
       </Card>
 
-      <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+      <Card className="surface-card">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Tailored output</CardTitle>

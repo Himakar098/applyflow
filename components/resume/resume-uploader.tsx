@@ -200,7 +200,7 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
   };
 
   return (
-    <Card className="border-0 bg-white shadow-sm shadow-slate-900/5">
+    <Card className="surface-card">
       <CardHeader className="pb-3">
         <CardTitle>Upload resume</CardTitle>
         <CardDescription>
@@ -209,7 +209,7 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-primary/30 bg-primary/5 px-6 py-10 text-center">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-primary/30 bg-white/70 px-6 py-10 text-center">
           <UploadCloud className="h-8 w-8 text-primary" aria-hidden />
           <p className="mt-3 text-lg font-semibold text-foreground">
             Drop your PDF or browse files
