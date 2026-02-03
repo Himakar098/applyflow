@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 import { HttpError, verifyIdToken } from "@/lib/auth/verify-id-token";
-import { adminDb, adminStorage } from "@/lib/firebase/admin";
+import { adminDb, adminStorage, adminStorageBucketName } from "@/lib/firebase/admin";
 
 export const runtime = "nodejs";
 
@@ -51,12 +51,18 @@ export async function DELETE(
 
     const data = snapshot.data() || {};
     const storagePath = data.storagePath || storagePathFromUrl(data.downloadUrl);
-    const bucket = adminStorage.bucket();
+    let bucket;
+    try {
+      bucket = adminStorageBucketName ? adminStorage.bucket(adminStorageBucketName) : adminStorage.bucket();
+    } catch (error) {
+      console.error("resume delete bucket error", { digest, error });
+      bucket = null;
+    }
 
     let storageError: string | null = null;
     let firestoreError: string | null = null;
 
-    if (storagePath) {
+    if (storagePath && bucket) {
       try {
         await bucket.file(storagePath).delete({ ignoreNotFound: true });
       } catch (error) {

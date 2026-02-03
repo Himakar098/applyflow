@@ -10,6 +10,14 @@ type ServiceAccountConfig = {
   storageBucket?: string;
 };
 
+function normalizeBucketName(value?: string) {
+  if (!value) return undefined;
+  if (value.includes(".firebasestorage.app")) {
+    return value.replace(".firebasestorage.app", ".appspot.com");
+  }
+  return value;
+}
+
 function parseAdminCredential(): ServiceAccountConfig | null {
   // Prefer singular; keep plural as backwards-compatible fallback
   const raw =
@@ -43,8 +51,10 @@ const clientEmail =
 const privateKey =
   parsedFromJson?.privateKey ??
   process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-const storageBucket =
+  const storageBucket =
   parsedFromJson?.storageBucket ?? process.env.FIREBASE_STORAGE_BUCKET;
+
+const adminBucketName = normalizeBucketName(storageBucket);
 
 const adminApp =
   getApps().length === 0
@@ -57,10 +67,11 @@ const adminApp =
                 privateKey,
               })
             : undefined,
-        storageBucket,
+        storageBucket: adminBucketName,
       })
     : getApps()[0];
 
 export const adminDb = getFirestore(adminApp);
 export const adminAuth = getAuth(adminApp);
 export const adminStorage = getStorage(adminApp);
+export const adminStorageBucketName = adminBucketName;

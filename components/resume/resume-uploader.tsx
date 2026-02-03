@@ -27,6 +27,7 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
   const [pastedText, setPastedText] = useState("");
   const [savingPaste, setSavingPaste] = useState(false);
   const [dailyLimitHit, setDailyLimitHit] = useState(false);
+  const [extractWarning, setExtractWarning] = useState<string | null>(null);
   const { toast } = useToast();
   const { user, token, refreshToken } = useAuth();
 
@@ -71,10 +72,28 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
       setExtractedText("");
       setExtractState("extracting");
       setDailyLimitHit(false);
+      setExtractWarning(null);
       setUploading(true);
-      const extracted = await extractResumeText(file);
-      setExtractedText(extracted);
-      setExtractState("extracted");
+      let extracted = "";
+      let allowUploadWithoutExtract = false;
+      try {
+        extracted = await extractResumeText(file);
+        setExtractedText(extracted);
+        setExtractState("extracted");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "RESUME_EXTRACT_FAILED";
+        if (message === "DAILY_LIMIT_REACHED") {
+          setDailyLimitHit(true);
+          setExtractWarning("Daily extraction limit reached. Upload saved without text extraction.");
+          allowUploadWithoutExtract = true;
+        } else if (message === "RESUME_EXTRACT_FAILED") {
+          setExtractWarning("We couldn’t read text from this file. Upload saved without text extraction.");
+          allowUploadWithoutExtract = true;
+        } else {
+          throw error;
+        }
+        setExtractState("failed");
+      }
 
       const currentToken = token ?? (await refreshToken());
       const storagePath = `users/${user.uid}/resumes/${Date.now()}-${file.name}`;
@@ -88,14 +107,16 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
         downloadUrl,
         status: "uploaded",
         uploadedAt: new Date().toISOString(),
-        parsedText: extracted,
+        parsedText: extracted || undefined,
         storagePath,
       });
 
       onUploaded(record);
       toast({
         title: "Resume uploaded",
-        description: "Stored securely and ready for optimization.",
+        description: allowUploadWithoutExtract
+          ? "Stored securely. Text extraction will be skipped for this file."
+          : "Stored securely and ready for optimization.",
       });
     } catch (error) {
       console.error(error);
@@ -125,6 +146,7 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
     try {
       setExtractState("extracting");
       setDailyLimitHit(false);
+      setExtractWarning(null);
       const text = await extractResumeText(selectedFile);
       setExtractedText(text);
       setExtractState("extracted");
@@ -230,6 +252,11 @@ export function ResumeUploader({ onUploaded }: ResumeUploaderProps) {
           {dailyLimitHit ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               Daily resume extraction limit reached. Try again tomorrow or increase the limit in your env config.
+            </div>
+          ) : null}
+          {extractWarning ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              {extractWarning}
             </div>
           ) : null}
           <p className="text-xs text-muted-foreground">
