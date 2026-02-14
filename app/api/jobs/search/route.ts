@@ -1,11 +1,22 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { FieldValue } from "firebase-admin/firestore";
 
 import { HttpError, verifyIdToken } from "@/lib/auth/verify-id-token";
 import { adminDb } from "@/lib/firebase/admin";
 import { checkAndIncrementUsage } from "@/lib/services/usage-limits";
 
 export const runtime = "nodejs";
+
+type SearchHistory = {
+  query: string;
+  location?: string;
+  remote?: string;
+  jobType?: string;
+  datePosted?: string;
+  provider: string;
+  createdAt: ReturnType<typeof FieldValue.serverTimestamp>;
+};
 
 type SearchFilters = {
   query?: string;
@@ -15,6 +26,7 @@ type SearchFilters = {
   jobType?: string;
   jobUrl?: string;
   page?: number;
+  pageToken?: string;
 };
 
 type SerpApiJob = {
@@ -37,6 +49,44 @@ type AdzunaJob = {
   redirect_url?: string;
   created?: string;
 };
+
+const ADZUNA_COUNTRY_HINTS: Array<{ code: string; keywords: string[] }> = [
+  {
+    code: "au",
+    keywords: [
+      "australia",
+      "au",
+      "perth",
+      "sydney",
+      "melbourne",
+      "brisbane",
+      "adelaide",
+      "canberra",
+      "hobart",
+      "darwin",
+    ],
+  },
+  {
+    code: "gb",
+    keywords: ["united kingdom", "uk", "london", "manchester", "edinburgh", "glasgow"],
+  },
+  {
+    code: "ca",
+    keywords: ["canada", "toronto", "vancouver", "montreal", "ottawa", "calgary"],
+  },
+  {
+    code: "us",
+    keywords: ["united states", "usa", "us", "new york", "san francisco", "chicago", "austin"],
+  },
+];
+
+function resolveAdzunaCountry(location: string) {
+  const normalized = location.toLowerCase();
+  const byKeyword = ADZUNA_COUNTRY_HINTS.find((hint) =>
+    hint.keywords.some((keyword) => normalized.includes(keyword)),
+  );
+  return byKeyword?.code ?? "us";
+}
 
 function handleError(error: unknown, digest: string) {
   if (error instanceof HttpError) {
@@ -105,6 +155,24 @@ export async function POST(req: NextRequest) {
       throw new HttpError(400, "query or jobUrl is required");
     }
 
+    const trackSearch = async () => {
+      if (!query) return;
+      const record: SearchHistory = {
+        query,
+        location: location || undefined,
+        remote: body.remote,
+        jobType: body.jobType,
+        datePosted: body.datePosted,
+        provider,
+        createdAt: FieldValue.serverTimestamp(),
+      };
+      try {
+        await adminDb.collection("users").doc(uid).collection("searches").add(record);
+      } catch (error) {
+        console.error("Failed to record search history", error);
+      }
+    };
+
     if (provider === "serpapi" && process.env.SERPAPI_API_KEY) {
       const params = new URLSearchParams({
         engine: "google_jobs",
@@ -112,11 +180,20 @@ export async function POST(req: NextRequest) {
         location: location || "United States",
         hl: "en",
         api_key: process.env.SERPAPI_API_KEY,
-        start: String((page - 1) * 10),
       });
+      if (body.pageToken) {
+        params.set("next_page_token", body.pageToken);
+      }
       const res = await fetch(`https://serpapi.com/search.json?${params.toString()}`);
       if (!res.ok) throw new HttpError(502, "search_provider_error");
       const data = await res.json();
+      if (data.error) {
+        await trackSearch();
+        return NextResponse.json(
+          { ok: true, results: [], warning: data.error, digest },
+          { status: 200 },
+        );
+      }
       const results = (data.jobs_results || []).map((job: SerpApiJob) => ({
         title: job.title || "",
         company: job.company_name || "",
@@ -126,18 +203,23 @@ export async function POST(req: NextRequest) {
         sourceUrl: job.job_id ? job.related_links?.[0]?.link : job.link,
         postedAt: job.detected_extensions?.posted_at || "",
       }));
-      return NextResponse.json({ ok: true, results, digest }, { status: 200 });
+      const nextPageToken = data.serpapi_pagination?.next_page_token || null;
+      const warning = results.length === 0 ? "No results for this query/location." : undefined;
+      await trackSearch();
+      return NextResponse.json(
+        { ok: true, results, nextPageToken, warning, digest },
+        { status: 200 },
+      );
     }
 
     if (provider === "adzuna" && process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY) {
-      const country = "us";
+      const country = resolveAdzunaCountry(location || "United States");
       const params = new URLSearchParams({
         app_id: process.env.ADZUNA_APP_ID,
         app_key: process.env.ADZUNA_APP_KEY,
         what: query,
         where: location || "United States",
         results_per_page: "20",
-        page: String(page),
       });
       const res = await fetch(`https://api.adzuna.com/v1/api/jobs/${country}/search/${page}?${params.toString()}`);
       if (!res.ok) throw new HttpError(502, "search_provider_error");
@@ -151,7 +233,9 @@ export async function POST(req: NextRequest) {
         sourceUrl: job.redirect_url || "",
         postedAt: job.created || "",
       }));
-      return NextResponse.json({ ok: true, results, digest }, { status: 200 });
+      const warning = results.length === 0 ? "No results for this query/location." : undefined;
+      await trackSearch();
+      return NextResponse.json({ ok: true, results, warning, digest }, { status: 200 });
     }
 
     if (jobUrl) {

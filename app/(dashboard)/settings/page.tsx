@@ -24,10 +24,27 @@ import type { Profile } from "@/lib/types";
 import { emptyProfile, normalizeProfile } from "@/lib/profile/normalize";
 
 function computeReadiness(profile: Profile) {
+  const scope = profile.preferredLocationScope ?? "";
+  const hasScopedLocation =
+    scope === "world"
+      ? true
+      : scope === "country"
+        ? Boolean(profile.preferredLocationCountry)
+        : scope === "state"
+          ? Boolean(profile.preferredLocationState || profile.preferredLocationCountry)
+          : scope === "city"
+            ? Boolean(
+                profile.preferredLocationCity ||
+                  profile.preferredLocationState ||
+                  profile.preferredLocationCountry,
+              )
+            : false;
+  const hasLocationPrefs = profile.preferredLocations.length > 0 || hasScopedLocation;
+
   const checks = {
     contact: Boolean(profile.fullName) && Boolean(profile.email || profile.phone),
     roles: profile.targetRoles.length > 0,
-    locations: profile.preferredLocations.length > 0,
+    locations: hasLocationPrefs,
     projects: profile.projects.length >= 2,
     experience: profile.workExperience.length >= 1,
     skills:
@@ -40,7 +57,7 @@ function computeReadiness(profile: Profile) {
   const missing: string[] = [];
   if (!checks.contact) missing.push("Add name + email or phone");
   if (!checks.roles) missing.push("Add target roles");
-  if (!checks.locations) missing.push("Add preferred locations");
+  if (!checks.locations) missing.push("Add preferred location scope");
   if (!checks.projects) missing.push("Add at least 2 projects");
   if (!checks.experience) missing.push("Add at least 1 work experience");
   if (!checks.skills) missing.push("Add skills in two categories");

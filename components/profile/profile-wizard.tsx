@@ -171,6 +171,14 @@ export function ProfileWizard({ initialProfile, onSaved }: ProfileWizardProps) {
       preferredLocations: profile.preferredLocations.length
         ? profile.preferredLocations
         : extractedProfile.preferredLocations,
+      preferredLocationScope:
+        profile.preferredLocationScope || extractedProfile.preferredLocationScope,
+      preferredLocationCountry:
+        profile.preferredLocationCountry || extractedProfile.preferredLocationCountry,
+      preferredLocationState:
+        profile.preferredLocationState || extractedProfile.preferredLocationState,
+      preferredLocationCity:
+        profile.preferredLocationCity || extractedProfile.preferredLocationCity,
       preferredWorkModes: profile.preferredWorkModes?.length
         ? profile.preferredWorkModes
         : extractedProfile.preferredWorkModes,

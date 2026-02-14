@@ -89,6 +89,10 @@ export type Profile = {
   visaStatus?: string;
   targetRoles: string[];
   preferredLocations: string[];
+  preferredLocationScope?: "city" | "state" | "country" | "world";
+  preferredLocationCountry?: string;
+  preferredLocationState?: string;
+  preferredLocationCity?: string;
   preferredWorkModes?: string[];
   preferredSeniority?: string[];
   yearsExperienceApprox?: number;

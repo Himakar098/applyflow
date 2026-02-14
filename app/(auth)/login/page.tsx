@@ -145,6 +145,14 @@ function LoginForm() {
                 </FormItem>
               )}
             />
+            <div className="flex items-center justify-end">
+              <Link
+                href="/forgot-password"
+                className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <Button
               type="submit"
               className="w-full"

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import type { Certification, Education, Profile, Project, WorkExperience } from "@/lib/types";
@@ -144,7 +145,50 @@ export function ProfileBuilder({ profile, onChange, className }: ProfileBuilderP
             />
           </div>
           <div className="space-y-2">
-            <Label>Preferred locations</Label>
+            <Label>Location scope</Label>
+            <Select
+              value={profile.preferredLocationScope ?? ""}
+              onValueChange={(value) =>
+                update({ preferredLocationScope: value as Profile["preferredLocationScope"] })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select scope" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="city">City</SelectItem>
+                <SelectItem value="state">State / Region</SelectItem>
+                <SelectItem value="country">Country</SelectItem>
+                <SelectItem value="world">Worldwide</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Preferred country</Label>
+            <Input
+              placeholder="e.g., Australia"
+              value={profile.preferredLocationCountry ?? ""}
+              onChange={(e) => update({ preferredLocationCountry: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Preferred state / region</Label>
+            <Input
+              placeholder="e.g., Western Australia"
+              value={profile.preferredLocationState ?? ""}
+              onChange={(e) => update({ preferredLocationState: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Preferred city</Label>
+            <Input
+              placeholder="e.g., Perth"
+              value={profile.preferredLocationCity ?? ""}
+              onChange={(e) => update({ preferredLocationCity: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Additional locations / remote (optional)</Label>
             <Input
               placeholder="e.g., Remote, Sydney, Singapore"
               value={profile.preferredLocations.join(", ")}

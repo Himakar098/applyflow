@@ -48,18 +48,61 @@ function normalizeAdzuna(job: AdzunaJob): ExternalJob {
   };
 }
 
+const ADZUNA_COUNTRY_HINTS: Array<{ code: string; keywords: string[] }> = [
+  {
+    code: "au",
+    keywords: [
+      "australia",
+      "au",
+      "perth",
+      "sydney",
+      "melbourne",
+      "brisbane",
+      "adelaide",
+      "canberra",
+      "hobart",
+      "darwin",
+    ],
+  },
+  {
+    code: "gb",
+    keywords: ["united kingdom", "uk", "london", "manchester", "edinburgh", "glasgow"],
+  },
+  {
+    code: "ca",
+    keywords: ["canada", "toronto", "vancouver", "montreal", "ottawa", "calgary"],
+  },
+  {
+    code: "us",
+    keywords: ["united states", "usa", "us", "new york", "san francisco", "chicago", "austin"],
+  },
+];
+
+function resolveAdzunaCountry(location: string) {
+  const normalized = location.toLowerCase();
+  const byKeyword = ADZUNA_COUNTRY_HINTS.find((hint) =>
+    hint.keywords.some((keyword) => normalized.includes(keyword)),
+  );
+  return byKeyword?.code ?? "us";
+}
+
 async function adzunaProvider(input: ProviderInput): Promise<ExternalJob[]> {
   if (!process.env.ADZUNA_APP_ID || !process.env.ADZUNA_APP_KEY) return [];
-  const roleQuery = input.roles[0] ?? "Software Engineer";
-  const location = input.locations[0] ?? "United States";
-  const country = "us";
+  const roleQuery = input.roles.length
+    ? input.roles.filter(Boolean).slice(0, 3).join(" OR ")
+    : "Business Analyst";
+  const hasRemote = input.workModes.some((mode) => mode.toLowerCase().includes("remote"));
+  const preferredLocation = input.locations.find((loc) => loc && loc.trim().length > 0);
+  const fallbackLocation = hasRemote ? "Remote" : "United States";
+  const location = preferredLocation ?? fallbackLocation;
+  const country = resolveAdzunaCountry(location || "United States");
   const params = new URLSearchParams({
     app_id: process.env.ADZUNA_APP_ID,
     app_key: process.env.ADZUNA_APP_KEY,
     what: roleQuery,
-    where: location,
+    where: location || fallbackLocation,
     results_per_page: "20",
-    page: "1",
+    max_days_old: "30",
   });
 
   const res = await fetchWithTimeout(

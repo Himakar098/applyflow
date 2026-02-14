@@ -38,9 +38,11 @@ export default function SearchPage() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [searchCount, setSearchCount] = useState(0);
   const [savedCount, setSavedCount] = useState(0);
   const [metaState, setMetaState] = useState<GamificationMeta | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   const matchesRemote = (job: SearchResult, mode: string) => {
     if (mode === "any") return true;
@@ -128,6 +130,7 @@ export default function SearchPage() {
           jobType,
           jobUrl,
           page: nextPage,
+          pageToken: nextPage === 1 ? null : nextPageToken,
         }),
       });
       const data = await res.json();
@@ -135,7 +138,10 @@ export default function SearchPage() {
       const incoming = applyClientFilters(data.results || []);
       setResults((prev) => (nextPage === 1 ? incoming : [...prev, ...incoming]));
       setPage(nextPage);
+      setNextPageToken(data.nextPageToken ?? null);
+      setWarning(typeof data.warning === "string" ? data.warning : null);
       if (nextPage === 1) {
+        setSearchCount((prev) => prev + 1);
         const state = await trackGamificationEvent("search_run");
         if (state) {
           setMetaState(state.meta);
@@ -296,6 +302,11 @@ export default function SearchPage() {
           <CardDescription>Save anything relevant to your tracker.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          {warning ? (
+            <div className="rounded-xl border border-dashed border-amber-400/40 bg-amber-50/70 px-4 py-3 text-sm text-amber-700">
+              {warning} Try a broader location (e.g., Australia) or remove the location field.
+            </div>
+          ) : null}
           {loading && results.length === 0 ? (
             <Skeleton className="h-28 w-full rounded-xl" />
           ) : results.length === 0 ? (
@@ -332,9 +343,15 @@ export default function SearchPage() {
                 </div>
               ))}
               <div className="flex justify-center">
-                <Button variant="outline" onClick={() => search(page + 1)} disabled={loading}>
-                  Load more
-                </Button>
+                {nextPageToken ? (
+                  <Button variant="outline" onClick={() => search(page + 1)} disabled={loading}>
+                    Load more
+                  </Button>
+                ) : (
+                  <Button variant="outline" disabled>
+                    No more results
+                  </Button>
+                )}
               </div>
             </div>
           )}

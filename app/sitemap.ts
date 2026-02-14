@@ -25,6 +25,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
+      url: `${siteConfig.url}/forgot-password`,
+      lastModified,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
       url: `${siteConfig.url}/pricing`,
       lastModified,
       changeFrequency: "monthly",

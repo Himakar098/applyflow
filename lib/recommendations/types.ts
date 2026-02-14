@@ -25,6 +25,7 @@ export type RecommendedJob = ExternalJob & {
 
 export type RecommendationCache = {
   date: string;
+  provider?: string;
   createdAt?: string;
   items: RecommendedJob[];
   hiddenIds?: string[];

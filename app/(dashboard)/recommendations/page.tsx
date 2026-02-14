@@ -28,6 +28,11 @@ type RecommendedJob = {
 type RecommendationResponse = {
   ok: boolean;
   date?: string;
+  provider?: string;
+  warning?: string;
+  appliedRoles?: string[];
+  appliedLocation?: string | null;
+  appliedScope?: string | null;
   strong?: RecommendedJob[];
   medium?: RecommendedJob[];
   items?: RecommendedJob[];
@@ -46,6 +51,11 @@ export default function RecommendationsPage() {
   const [savedMap, setSavedMap] = useState<Record<string, string>>({});
   const [missingPrefs, setMissingPrefs] = useState<string[]>([]);
   const [date, setDate] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
+  const [appliedRoles, setAppliedRoles] = useState<string[]>([]);
+  const [appliedLocation, setAppliedLocation] = useState<string | null>(null);
+  const [appliedScope, setAppliedScope] = useState<string | null>(null);
+  const [provider, setProvider] = useState<string | null>(null);
 
   const strong = useMemo(() => items.filter((job) => job.matchScore >= 80), [items]);
   const medium = useMemo(
@@ -53,6 +63,15 @@ export default function RecommendationsPage() {
     [items],
   );
   const savedCount = savedIds.length;
+  const roleSummary = useMemo(() => {
+    if (!appliedRoles.length) return null;
+    const visible = appliedRoles.slice(0, 3).join(", ");
+    const extra = appliedRoles.length > 3 ? ` +${appliedRoles.length - 3}` : "";
+    return `${visible}${extra}`;
+  }, [appliedRoles]);
+  const scopeLabel = appliedScope
+    ? `${appliedScope.charAt(0).toUpperCase()}${appliedScope.slice(1)}`
+    : null;
 
   const loadRecommendations = async () => {
     setLoading(true);
@@ -71,6 +90,11 @@ export default function RecommendationsPage() {
       setSavedIds(data.savedIds ?? []);
       setSavedMap(data.savedMap ?? {});
       setDate(data.date ?? null);
+      setWarning(data.warning ?? null);
+      setAppliedRoles(data.appliedRoles ?? []);
+      setAppliedLocation(data.appliedLocation ?? null);
+      setAppliedScope(data.appliedScope ?? null);
+      setProvider(data.provider ?? null);
       setMissingPrefs([]);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load recommendations";
@@ -197,6 +221,20 @@ export default function RecommendationsPage() {
               <Sparkles className="h-4 w-4" />
               {date ? `Updated ${date}` : "Updated daily"}
             </div>
+            <div className="flex flex-wrap gap-2 pt-2">
+              {provider ? (
+                <Badge variant="secondary">Source: {provider}</Badge>
+              ) : null}
+              {scopeLabel ? (
+                <Badge variant="secondary">Scope: {scopeLabel}</Badge>
+              ) : null}
+              {appliedLocation ? (
+                <Badge variant="secondary">Location: {appliedLocation}</Badge>
+              ) : null}
+              {roleSummary ? (
+                <Badge variant="secondary">Roles: {roleSummary}</Badge>
+              ) : null}
+            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="surface-card px-4 py-3">
@@ -244,11 +282,16 @@ export default function RecommendationsPage() {
       ) : items.length === 0 ? (
         <Card className="surface-card">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No recommendations available right now. Check back tomorrow.
+            {warning ?? "No recommendations available right now. Check back tomorrow."}
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-6">
+          {warning ? (
+            <div className="rounded-xl border border-dashed border-amber-400/40 bg-amber-50/70 px-4 py-3 text-sm text-amber-700">
+              {warning} Add more target roles or preferred locations to widen the match pool.
+            </div>
+          ) : null}
           {strong.length ? (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-foreground">Strong matches</h3>
