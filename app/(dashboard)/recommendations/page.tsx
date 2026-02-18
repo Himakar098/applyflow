@@ -2,12 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, EyeOff, Sparkles } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, EyeOff, Filter, Loader2, RefreshCcw, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { getAuthHeader } from "@/lib/firebase/getIdToken";
@@ -46,6 +49,7 @@ type RecommendationResponse = {
 export default function RecommendationsPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [items, setItems] = useState<RecommendedJob[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [savedMap, setSavedMap] = useState<Record<string, string>>({});
@@ -56,11 +60,42 @@ export default function RecommendationsPage() {
   const [appliedLocation, setAppliedLocation] = useState<string | null>(null);
   const [appliedScope, setAppliedScope] = useState<string | null>(null);
   const [provider, setProvider] = useState<string | null>(null);
+  const [minScoreFilter, setMinScoreFilter] = useState("55");
+  const [workModeFilter, setWorkModeFilter] = useState("any");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [keywordFilter, setKeywordFilter] = useState("");
 
-  const strong = useMemo(() => items.filter((job) => job.matchScore >= 80), [items]);
+  const filteredTopItems = useMemo(() => {
+    let next = [...items];
+    const minScore = Number(minScoreFilter);
+    if (Number.isFinite(minScore)) {
+      next = next.filter((job) => job.matchScore >= minScore);
+    }
+    if (workModeFilter !== "any") {
+      next = next.filter((job) => {
+        const haystack = `${job.title} ${job.description ?? ""} ${job.location ?? ""}`.toLowerCase();
+        if (workModeFilter === "remote") return haystack.includes("remote");
+        if (workModeFilter === "hybrid") return haystack.includes("hybrid");
+        if (workModeFilter === "onsite") return haystack.includes("on-site") || haystack.includes("onsite");
+        return true;
+      });
+    }
+    if (locationFilter.trim()) {
+      const needle = locationFilter.trim().toLowerCase();
+      next = next.filter((job) => (job.location ?? "").toLowerCase().includes(needle));
+    }
+    if (keywordFilter.trim()) {
+      const needle = keywordFilter.trim().toLowerCase();
+      next = next.filter((job) =>
+        `${job.title} ${job.company} ${job.description ?? ""}`.toLowerCase().includes(needle),
+      );
+    }
+    return next.sort((a, b) => b.matchScore - a.matchScore).slice(0, 10);
+  }, [items, keywordFilter, locationFilter, minScoreFilter, workModeFilter]);
+  const strong = useMemo(() => filteredTopItems.filter((job) => job.matchScore >= 80), [filteredTopItems]);
   const medium = useMemo(
-    () => items.filter((job) => job.matchScore >= 60 && job.matchScore < 80),
-    [items],
+    () => filteredTopItems.filter((job) => job.matchScore >= 60 && job.matchScore < 80),
+    [filteredTopItems],
   );
   const savedCount = savedIds.length;
   const roleSummary = useMemo(() => {
@@ -73,12 +108,17 @@ export default function RecommendationsPage() {
     ? `${appliedScope.charAt(0).toUpperCase()}${appliedScope.slice(1)}`
     : null;
 
-  const loadRecommendations = async () => {
-    setLoading(true);
+  const loadRecommendations = async (opts?: { refresh?: boolean }) => {
+    if (opts?.refresh) {
+      setRefreshing(true);
+    } else if (items.length === 0) {
+      setLoading(true);
+    }
     try {
       const headers = await getAuthHeader();
       if (!headers) return;
-      const res = await fetch("/api/recommendations", { headers });
+      const url = opts?.refresh ? "/api/recommendations?refresh=1" : "/api/recommendations";
+      const res = await fetch(url, { headers });
       const data = (await res.json()) as RecommendationResponse;
       if (res.status === 412) {
         setMissingPrefs(data.missing ?? []);
@@ -101,6 +141,7 @@ export default function RecommendationsPage() {
       toast({ title: "Recommendations unavailable", description: message, variant: "destructive" });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -129,6 +170,30 @@ export default function RecommendationsPage() {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Save failed";
       toast({ title: "Save failed", description: message, variant: "destructive" });
+    }
+  };
+
+  const applyJob = async (job: RecommendedJob) => {
+    try {
+      const headers = await getAuthHeader();
+      if (!headers) return;
+      const res = await fetch("/api/recommendations/save", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ job, status: "applied", hideAfterSave: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unable to mark as applied");
+      setSavedIds((prev) => [...prev, job.id]);
+      if (data.id) {
+        setSavedMap((prev) => ({ ...prev, [job.id]: data.id }));
+      }
+      setItems((prev) => prev.filter((item) => item.id !== job.id));
+      await trackGamificationEvent("recommendation_saved");
+      toast({ title: "Marked as applied", description: "Moved to applied jobs and removed from recommendations." });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Apply action failed";
+      toast({ title: "Apply action failed", description: message, variant: "destructive" });
     }
   };
 
@@ -183,9 +248,13 @@ export default function RecommendationsPage() {
             ) : isSaved ? (
               <Badge variant="outline">Saved</Badge>
             ) : (
-              <Button onClick={() => saveJob(job)}>
-                Save to Job Tracker
-              </Button>
+              <>
+                <Button onClick={() => saveJob(job)}>Save to Job Tracker</Button>
+                <Button variant="secondary" onClick={() => applyJob(job)}>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Mark as applied
+                </Button>
+              </>
             )}
             {job.url ? (
               <Button variant="outline" asChild>
@@ -221,6 +290,25 @@ export default function RecommendationsPage() {
               <Sparkles className="h-4 w-4" />
               {date ? `Updated ${date}` : "Updated daily"}
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 w-fit"
+              onClick={() => void loadRecommendations({ refresh: true })}
+              disabled={refreshing}
+            >
+              {refreshing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  Refresh recommendations
+                </>
+              )}
+            </Button>
             <div className="flex flex-wrap gap-2 pt-2">
               {provider ? (
                 <Badge variant="secondary">Source: {provider}</Badge>
@@ -247,12 +335,70 @@ export default function RecommendationsPage() {
               <Progress value={Math.min(100, (savedCount / 2) * 100)} className="mt-2 h-2" />
             </div>
             <div className="surface-card px-4 py-3">
-              <p className="text-xs text-muted-foreground">Matches total</p>
-              <p className="text-lg font-semibold text-foreground">{items.length}</p>
+              <p className="text-xs text-muted-foreground">Showing</p>
+              <p className="text-lg font-semibold text-foreground">
+                {filteredTopItems.length}/{Math.min(items.length, 10)}
+              </p>
             </div>
           </div>
         </div>
       </div>
+
+      <Card className="surface-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Filter className="h-4 w-4" />
+            Active filters
+          </CardTitle>
+          <CardDescription>Top 10 profile matches after filters.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-2">
+            <Label>Minimum match</Label>
+            <Select value={minScoreFilter} onValueChange={setMinScoreFilter}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="55">55+</SelectItem>
+                <SelectItem value="60">60+</SelectItem>
+                <SelectItem value="70">70+</SelectItem>
+                <SelectItem value="80">80+</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Work mode</Label>
+            <Select value={workModeFilter} onValueChange={setWorkModeFilter}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any</SelectItem>
+                <SelectItem value="remote">Remote</SelectItem>
+                <SelectItem value="hybrid">Hybrid</SelectItem>
+                <SelectItem value="onsite">Onsite</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Location contains</Label>
+            <Input
+              placeholder="e.g., Perth"
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Keyword</Label>
+            <Input
+              placeholder="e.g., analyst"
+              value={keywordFilter}
+              onChange={(e) => setKeywordFilter(e.target.value)}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {loading ? (
         <div className="space-y-3">
@@ -285,6 +431,12 @@ export default function RecommendationsPage() {
             {warning ?? "No recommendations available right now. Check back tomorrow."}
           </CardContent>
         </Card>
+      ) : filteredTopItems.length === 0 ? (
+        <Card className="surface-card">
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            No recommendations match your active filters. Relax filters to see more results.
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-6">
           {warning ? (
@@ -307,7 +459,7 @@ export default function RecommendationsPage() {
           {!strong.length && !medium.length ? (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-foreground">Other matches</h3>
-              {items.map(renderJobCard)}
+              {filteredTopItems.map(renderJobCard)}
             </div>
           ) : null}
         </div>

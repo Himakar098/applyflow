@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -33,6 +34,17 @@ const links = [
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
+const mobileLinks = [
+  { label: "Home", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Jobs", href: "/jobs", icon: Briefcase },
+  { label: "Recs", href: "/recommendations", icon: Target },
+  { label: "Search", href: "/search", icon: Search },
+  { label: "Settings", href: "/settings", icon: Settings },
+];
+
+const isLinkActive = (pathname: string, href: string) =>
+  pathname === href || pathname.startsWith(`${href}/`);
+
 function NavLinks({ onSelect }: { onSelect?: () => void }) {
   const pathname = usePathname();
 
@@ -40,7 +52,7 @@ function NavLinks({ onSelect }: { onSelect?: () => void }) {
     <nav className="space-y-1">
       {links.map((link) => {
         const Icon = link.icon;
-        const isActive = pathname === link.href;
+        const isActive = isLinkActive(pathname, link.href);
         return (
           <Link
             key={link.href}
@@ -63,6 +75,9 @@ function NavLinks({ onSelect }: { onSelect?: () => void }) {
 }
 
 export function Sidebar() {
+  const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <>
       <aside className="hidden w-64 flex-col border-r border-white/40 bg-white/70 px-4 py-6 backdrop-blur-2xl lg:flex">
@@ -95,7 +110,7 @@ export function Sidebar() {
             <p className="text-xs text-muted-foreground">Career OS</p>
           </div>
         </div>
-        <Sheet>
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon">
               <Menu className="h-4 w-4" />
@@ -110,14 +125,39 @@ export function Sidebar() {
               </SheetDescription>
             </SheetHeader>
             <div className="mt-6">
-              <NavLinks />
+              <NavLinks onSelect={() => setMobileMenuOpen(false)} />
               <Button asChild className="mt-6 w-full">
-                <Link href="/jobs?new=1">New application</Link>
+                <Link href="/jobs?new=1" onClick={() => setMobileMenuOpen(false)}>
+                  New application
+                </Link>
               </Button>
             </div>
           </SheetContent>
         </Sheet>
       </div>
+      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/55 bg-white/85 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 backdrop-blur-2xl lg:hidden">
+        <div className="mx-auto grid w-full max-w-xl grid-cols-5 gap-1">
+          {mobileLinks.map((link) => {
+            const Icon = link.icon;
+            const active = isLinkActive(pathname, link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "flex flex-col items-center justify-center rounded-xl px-2 py-2 text-[11px] font-medium transition-all",
+                  active
+                    ? "bg-primary/10 text-primary ring-1 ring-primary/20"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                <Icon className="mb-1 h-4 w-4" />
+                {link.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </>
   );
 }

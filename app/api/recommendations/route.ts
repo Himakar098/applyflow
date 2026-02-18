@@ -146,16 +146,26 @@ function isRecent(postedAt?: string) {
   return diffDays <= MAX_JOB_AGE_DAYS;
 }
 
-function toDate(value: SearchHistoryItem["createdAt"]) {
-  if (!value) return null;
-  if (typeof value === "string") {
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }
-  if (typeof value.toDate === "function") {
-    return value.toDate();
-  }
-  return null;
+const CONSUMED_STATUSES = new Set(["applied", "interview", "offer"]);
+
+async function getConsumedRecommendationIds(uid: string, savedMap: Record<string, string>) {
+  const entries = Object.entries(savedMap).filter(([, jobId]) => Boolean(jobId));
+  if (!entries.length) return [] as string[];
+
+  const jobDocs = await Promise.all(
+    entries.map(([, jobId]) =>
+      adminDb.collection("users").doc(uid).collection("jobs").doc(jobId).get().catch(() => null),
+    ),
+  );
+
+  return entries
+    .filter((_, idx) => {
+      const snap = jobDocs[idx];
+      if (!snap?.exists) return false;
+      const status = String(snap.data()?.status ?? "").toLowerCase();
+      return CONSUMED_STATUSES.has(status);
+    })
+    .map(([recId]) => recId);
 }
 
 function buildResponse(
@@ -191,6 +201,7 @@ function buildResponse(
 export async function GET(req: NextRequest) {
   const digest = randomUUID();
   try {
+    const forceRefresh = req.nextUrl.searchParams.get("refresh") === "1";
     const { uid } = await verifyIdToken(req);
     const dateKey = getUtcDateKey();
     const docRef = adminDb.collection("users").doc(uid).collection("recommendations").doc(dateKey);
@@ -239,19 +250,29 @@ export async function GET(req: NextRequest) {
 
     const provider = getRecommendationProvider();
     const cached = await docRef.get();
-    if (cached.exists) {
-      const data = cached.data() as RecommendationCache;
-      const cacheCreatedAt = toDate(data.createdAt as SearchHistoryItem["createdAt"]);
-      const latestSearchAt = toDate(searches[0]?.createdAt ?? null);
-      const cacheIsFresh =
-        data.provider === provider.name &&
-        (!latestSearchAt || (cacheCreatedAt && cacheCreatedAt >= latestSearchAt));
+    const previousCache = cached.exists ? (cached.data() as RecommendationCache) : null;
+    if (cached.exists && !forceRefresh) {
+      const data = previousCache as RecommendationCache;
+      const cacheIsReusable = data.provider === provider.name;
 
-      if (cacheIsFresh) {
+      if (cacheIsReusable) {
         const hidden = new Set(data.hiddenIds ?? []);
-        const items = (data.items ?? []).filter((job) => !hidden.has(job.id));
+        const consumedIds = await getConsumedRecommendationIds(uid, data.savedMap ?? {});
+        consumedIds.forEach((id) => hidden.add(id));
+        if (consumedIds.length) {
+          await docRef.set(
+            {
+              hiddenIds: FieldValue.arrayUnion(...consumedIds),
+            },
+            { merge: true },
+          );
+        }
+        const items = (data.items ?? []).filter((job) => !hidden.has(job.id)).slice(0, 10);
         responseMeta.provider = provider.name;
-        return NextResponse.json(buildResponse(items, data, undefined, responseMeta), { status: 200 });
+        return NextResponse.json(
+          buildResponse(items, { ...data, hiddenIds: Array.from(hidden) }, undefined, responseMeta),
+          { status: 200 },
+        );
       }
     }
     const jobs = await provider.fetch({
@@ -309,13 +330,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const consumedFromSaved = await getConsumedRecommendationIds(uid, previousCache?.savedMap ?? {});
+    const hiddenIds = Array.from(
+      new Set([...(previousCache?.hiddenIds ?? []), ...consumedFromSaved]),
+    );
     const cache: RecommendationCache = {
       date: dateKey,
       provider: provider.name,
-      items: scored,
-      hiddenIds: [],
-      savedIds: [],
-      savedMap: {},
+      items: scored.filter((job) => !hiddenIds.includes(job.id)),
+      hiddenIds,
+      savedIds: previousCache?.savedIds ?? [],
+      savedMap: previousCache?.savedMap ?? {},
     };
 
     await docRef.set({
@@ -324,7 +349,8 @@ export async function GET(req: NextRequest) {
     });
 
     responseMeta.provider = provider.name;
-    return NextResponse.json(buildResponse(scored, cache, warning, responseMeta), { status: 200 });
+    const visibleItems = cache.items.slice(0, 10);
+    return NextResponse.json(buildResponse(visibleItems, cache, warning, responseMeta), { status: 200 });
   } catch (error) {
     return handleError(error, digest);
   }

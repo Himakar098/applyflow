@@ -28,6 +28,9 @@ export async function POST(req: NextRequest) {
     const company = job.company?.toString().trim();
     const description = job.description?.toString().trim() ?? "";
     const recId = job.id?.toString().trim();
+    const requestedStatus = body?.status?.toString().trim().toLowerCase();
+    const status = requestedStatus === "applied" ? "applied" : "saved";
+    const hideAfterSave = Boolean(body?.hideAfterSave);
     if (!title || !company) throw new HttpError(400, "title and company are required");
 
     const now = new Date().toISOString();
@@ -37,8 +40,8 @@ export async function POST(req: NextRequest) {
       company,
       location: job.location ?? "",
       source: job.source ?? "external",
-      status: "saved",
-      appliedDate: "",
+      status,
+      appliedDate: status === "applied" ? now : "",
       jobDescription: description,
       jobUrl: job.url ?? job.sourceUrl ?? "",
       createdAt: now,
@@ -59,6 +62,14 @@ export async function POST(req: NextRequest) {
           savedMap: {
             [recId]: jobRef.id,
           },
+        },
+        { merge: true },
+      );
+    }
+    if (hideAfterSave && recId) {
+      await recRef.set(
+        {
+          hiddenIds: FieldValue.arrayUnion(recId),
         },
         { merge: true },
       );

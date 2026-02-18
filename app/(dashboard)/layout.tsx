@@ -36,7 +36,7 @@ export default function DashboardLayout({
               <UserNav user={user} />
             </div>
           </header>
-          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <main className="flex-1 px-4 py-6 pb-28 sm:px-6 sm:pb-8 lg:px-8 lg:pb-6">
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
