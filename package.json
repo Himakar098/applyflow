@@ -14,7 +14,8 @@
     "perf:api": "node scripts/perf-api-smoke.mjs",
     "package:extensions": "python3 scripts/package_browser_extension.py",
     "launch:check": "node scripts/launch-readiness.mjs",
-    "firebase:deploy": "firebase deploy --project applyflow-c9741 --only firestore:rules,firestore:indexes,storage"
+    "firebase:deploy": "firebase deploy --project applyflow-c9741 --only firestore:rules,firestore:indexes,storage",
+    "firebase:emulators": "firebase emulators:start"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

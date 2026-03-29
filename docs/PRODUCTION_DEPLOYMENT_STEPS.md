@@ -54,6 +54,21 @@ Notes:
 - `npm run firebase:deploy` publishes the repo-managed Firestore rules, Firestore indexes, and Storage rules to `applyflow-c9741`.
 - `npm run test:e2e` authenticated tests require `E2E_TEST_EMAIL` and `E2E_TEST_PASSWORD`.
 
+## Local Firebase emulators
+
+For local-only Firebase work, set these in `.env.local`:
+
+- `NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true`
+- `NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099`
+- `NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST=127.0.0.1:8080`
+- `NEXT_PUBLIC_FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199`
+
+Then run:
+
+```bash
+npm run firebase:emulators
+```
+
 ## 4) Post-Deploy Verification
 
 - Verify public pages:

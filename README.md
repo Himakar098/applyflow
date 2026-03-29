@@ -182,10 +182,15 @@ Use one of these approaches:
 ```bash
 npm run firebase:deploy
 ```
+8. For local emulator-based development, enable the emulator env values in `.env.local` and run:
+```bash
+npm run firebase:emulators
+```
 
 The committed Firebase rules are intentionally conservative:
-- user documents live under `users/{uid}/...`
-- client access is limited to the authenticated owner
+- Storage objects live under `users/{uid}/...`
+- direct Firestore client access is limited to the authenticated owner for the few collections currently read or written in the browser
+- broader user data access happens through trusted server routes or server actions using the Admin SDK
 - top-level support/marketing/system collections remain server-only
 - Storage uploads are limited to the file types and size constraints currently used by the app
 

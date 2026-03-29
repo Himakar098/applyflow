@@ -11,10 +11,29 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow write: if false;
 
-      match /{document=**} {
+      // Auto-apply settings are edited client-side.
+      match /settings/{settingId} {
         allow read, write: if isOwner(userId);
+      }
+
+      // Auto-apply analytics and manual tasks are currently read client-side.
+      match /analytics/{documentId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+
+      match /manual-tasks/{taskId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+
+      // All other user subcollections are written and read through trusted
+      // server routes or server actions using the Admin SDK.
+      match /{document=**} {
+        allow read, write: if false;
       }
     }
 

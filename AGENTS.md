@@ -61,6 +61,11 @@ npm run launch:check
 npm run firebase:deploy
 ```
 
+### Firebase emulators
+```bash
+npm run firebase:emulators
+```
+
 ### API perf smoke
 ```bash
 PERF_BEARER_TOKEN=<firebase-id-token> npm run perf:api
@@ -96,6 +101,8 @@ npm run package:extensions
 - `firestore.rules`
 - `firestore.indexes.json`
 - `storage.rules`
+- `firebase.json`
+- `.firebaserc`
 - browser extension permissions and store-facing files under `extension/`
 - public beta access controls and environment contract
 
