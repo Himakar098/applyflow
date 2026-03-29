@@ -5,6 +5,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 
+import { FirstRunChecklist } from "@/components/onboarding/first-run-checklist";
+import { WelcomeModal } from "@/components/onboarding/welcome-modal";
 import { JobStats } from "@/components/jobs/job-stats";
 import { StatusBadge } from "@/components/jobs/status-badge";
 import { Badge } from "@/components/ui/badge";
@@ -17,14 +19,17 @@ import { fetchJobs as fetchJobsAction } from "@/app/actions/jobs";
 import { fetchResumes as fetchResumesAction } from "@/app/actions/resumes";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { fetchGamificationDaily } from "@/lib/gamification/client";
-import type { JobApplication, ResumeRecord } from "@/lib/types";
+import { getAuthHeader } from "@/lib/firebase/getIdToken";
+import { computeReadiness } from "@/lib/profile/readiness";
+import type { JobApplication, Profile, ResumeRecord } from "@/lib/types";
 
 export default function DashboardPage() {
-  const { token, refreshToken } = useAuth();
+  const { token, refreshToken, user } = useAuth();
   const { toast } = useToast();
   const [jobs, setJobs] = useState<JobApplication[]>([]);
   const [resumes, setResumes] = useState<ResumeRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profileReadiness, setProfileReadiness] = useState(0);
   const [dailyXp, setDailyXp] = useState(0);
   const [streak, setStreak] = useState(0);
   const [missionCounts, setMissionCounts] = useState({
@@ -40,13 +45,26 @@ export default function DashboardPage() {
       try {
         const idToken = token ?? (await refreshToken());
         if (!idToken) return;
-        const [jobsData, resumeData, gamification] = await Promise.all([
+        const headers = await getAuthHeader();
+        const profilePromise = headers
+          ? fetch("/api/profile/current", { headers })
+              .then(async (res) => {
+                if (res.status === 404) return null;
+                if (!res.ok) throw new Error("Unable to load profile");
+                const data = (await res.json()) as { profileJson?: Profile };
+                return data.profileJson ?? null;
+              })
+          : Promise.resolve<Profile | null>(null);
+
+        const [jobsData, resumeData, gamification, profile] = await Promise.all([
           fetchJobsAction(idToken),
           fetchResumesAction(idToken),
           fetchGamificationDaily(),
+          profilePromise,
         ]);
         setJobs(jobsData);
         setResumes(resumeData);
+        setProfileReadiness(profile ? computeReadiness(profile).score : 0);
         if (gamification) {
           setDailyXp(gamification.daily.xp ?? 0);
           setStreak(gamification.meta.streak ?? 0);
@@ -149,6 +167,16 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {!loading && user?.uid ? (
+        <WelcomeModal
+          userId={user.uid}
+          readinessScore={profileReadiness}
+          hasResume={resumes.length > 0}
+          hasSavedJob={jobs.length > 0}
+          hasAppliedJob={jobs.some((job) => job.status !== "saved")}
+        />
+      ) : null}
+
       <Card className="surface-panel hero-panel">
         <CardContent className="flex flex-col justify-between gap-4 p-6 md:flex-row md:items-center">
           <div className="space-y-2">
@@ -192,6 +220,16 @@ export default function DashboardPage() {
       ) : (
         <JobStats jobs={jobs} />
       )}
+
+      {!loading && user?.uid ? (
+        <FirstRunChecklist
+          userId={user.uid}
+          readinessScore={profileReadiness}
+          hasResume={resumes.length > 0}
+          hasSavedJob={jobs.length > 0}
+          hasAppliedJob={jobs.some((job) => job.status !== "saved")}
+        />
+      ) : null}
 
       <Card className="surface-card">
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

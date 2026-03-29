@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { createJob as createJobAction } from "@/app/actions/jobs";
+import { trackAnalyticsEvent } from "@/lib/analytics/client";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { fetchGamificationDaily, trackGamificationEvent, type GamificationMeta } from "@/lib/gamification/client";
 import type { JobDraft } from "@/lib/types";
@@ -147,6 +148,11 @@ export default function SearchPage() {
           setMetaState(state.meta);
           setSearchCount(state.daily.events.searchRuns ?? 0);
         }
+        await trackAnalyticsEvent("search_run", {
+          query,
+          location,
+          resultCount: incoming.length,
+        });
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Search failed";
@@ -179,6 +185,9 @@ export default function SearchPage() {
         setMetaState(state.meta);
         setSavedCount(state.daily.events.jobsSaved ?? 0);
       }
+      await trackAnalyticsEvent("job_saved", {
+        source: result.source,
+      });
       toast({ title: "Saved to tracker" });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Save failed";

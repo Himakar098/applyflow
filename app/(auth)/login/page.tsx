@@ -11,6 +11,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { AuthShell } from "@/components/auth/auth-shell";
+import { PublicBetaNote } from "@/components/beta/public-beta-note";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -21,6 +22,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { trackAnalyticsEvent } from "@/lib/analytics/client";
+import { betaConfig, getBetaPrimaryCta } from "@/lib/beta/config";
 import { auth, googleProvider } from "@/lib/firebase/client";
 
 const schema = z.object({
@@ -35,6 +38,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/dashboard";
   const { toast } = useToast();
+  const primaryCta = getBetaPrimaryCta();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -45,6 +49,7 @@ function LoginForm() {
     form.clearErrors();
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
+      await trackAnalyticsEvent("login_completed", { method: "password" });
       toast({ title: "Welcome back", description: "You are signed in." });
       router.push(next);
     } catch (error) {
@@ -58,8 +63,11 @@ function LoginForm() {
   };
 
   const handleGoogle = async () => {
+    if (betaConfig.accessMode !== "open") return;
+
     try {
       await signInWithPopup(auth, googleProvider);
+      await trackAnalyticsEvent("login_completed", { method: "google" });
       toast({ title: "Signed in with Google" });
       router.push(next);
     } catch (error) {
@@ -76,8 +84,14 @@ function LoginForm() {
 
   return (
     <AuthShell
-      title="Sign in to ApplyFlow"
-      description="Stay on top of your applications with an AI-first workspace."
+      title={betaConfig.enabled ? "Sign in to ApplyFlow beta" : "Sign in to ApplyFlow"}
+      description={
+        betaConfig.accessMode === "waitlist"
+          ? "Existing beta users can sign in. New users should join the waitlist."
+          : betaConfig.accessMode === "invite"
+            ? "Existing beta users can sign in. New users need an invite code."
+            : "Stay on top of your applications with an AI-first workspace."
+      }
       footer={
         <div className="flex w-full items-center justify-between text-muted-foreground">
           <div className="flex items-center gap-2 text-xs">
@@ -87,10 +101,10 @@ function LoginForm() {
           <span>
             New here?{" "}
             <Link
-              href="/register"
+              href={primaryCta.href}
               className="font-medium text-primary underline-offset-4 hover:underline"
             >
-              Create an account
+              {primaryCta.label}
             </Link>
           </span>
         </div>
@@ -102,10 +116,15 @@ function LoginForm() {
         transition={{ duration: 0.25 }}
         className="space-y-4"
       >
+        <PublicBetaNote />
         <div className="rounded-xl border border-dashed border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Mail className="h-4 w-4 text-primary" />
-            <p>Use your email or continue with Google to get started.</p>
+            <p>
+              {betaConfig.accessMode === "open"
+                ? "Use your email or continue with Google to get started."
+                : "Use your existing email login. New beta access is managed separately."}
+            </p>
           </div>
         </div>
         <Form {...form}>
@@ -175,10 +194,10 @@ function LoginForm() {
             type="button"
             variant="outline"
             className="w-full"
-            disabled={isSubmitting}
+            disabled={isSubmitting || betaConfig.accessMode !== "open"}
             onClick={handleGoogle}
           >
-            Continue with Google
+            {betaConfig.accessMode === "open" ? "Continue with Google" : "Google sign-in disabled in gated beta"}
           </Button>
           <p className="text-center text-xs text-muted-foreground">
             By continuing, you agree to our privacy notice and acceptable use

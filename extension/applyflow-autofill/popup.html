@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ApplyFlow Assistant</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <h1>ApplyFlow Assistant</h1>
+        <p>Use synced context from ApplyFlow and let the extension pause and resume around login, CAPTCHA, and MFA steps.</p>
+      </header>
+
+      <section class="card">
+        <p id="summary" class="summary"></p>
+        <p id="hold" class="hold"></p>
+        <p id="status" class="status"></p>
+      </section>
+
+      <section class="card">
+        <div class="row">
+          <button id="assist" class="primary">Start assisted autofill</button>
+          <button id="run">Quick fill only</button>
+        </div>
+        <button id="clear">Clear saved context</button>
+      </section>
+
+      <details class="card advanced">
+        <summary>Advanced: paste context JSON manually</summary>
+        <label for="context">Context JSON</label>
+        <textarea
+          id="context"
+          rows="9"
+          placeholder="ApplyFlow usually syncs this automatically. Use manual paste only if sync is unavailable."
+        ></textarea>
+        <div class="row">
+          <button id="save" class="primary">Save JSON</button>
+        </div>
+        <p class="hint">Recommended flow: sync from Apply Assistant, open the employer page, then click Start assisted autofill.</p>
+      </details>
+      <section class="card compact">
+        <ol class="steps">
+          <li>Sync context from ApplyFlow.</li>
+          <li>Open the employer application page.</li>
+          <li>If login, CAPTCHA, or MFA appears, clear it manually.</li>
+          <li>ApplyFlow resumes autofill automatically when the blocker is gone.</li>
+        </ol>
+      </section>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

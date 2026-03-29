@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 
 import { HttpError, verifyIdToken } from "@/lib/auth/verify-id-token";
 import { adminDb } from "@/lib/firebase/admin";
+import { captureServerError } from "@/lib/monitoring/capture-server-error";
 import { checkAndIncrementUsage } from "@/lib/services/usage-limits";
 
 export const runtime = "nodejs";
@@ -88,13 +89,18 @@ function resolveAdzunaCountry(location: string) {
   return byKeyword?.code ?? "us";
 }
 
-function handleError(error: unknown, digest: string) {
+function handleError(error: unknown, digest: string, uid?: string) {
   if (error instanceof HttpError) {
     return NextResponse.json(
       { ok: false, error: error.message, digest },
       { status: error.status },
     );
   }
+  captureServerError(error, {
+    route: "api/jobs/search",
+    digest,
+    extra: { uid: uid ?? "unknown" },
+  });
   console.error("api/jobs/search", digest, error);
   return NextResponse.json(
     { ok: false, error: "internal_error", digest },
@@ -251,6 +257,6 @@ export async function POST(req: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    return handleError(error, digest);
+    return handleError(error, digest, uid);
   }
 }

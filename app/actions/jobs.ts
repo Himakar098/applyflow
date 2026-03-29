@@ -1,6 +1,7 @@
 "use server";
 
 import { adminDb } from "@/lib/firebase/admin";
+import { recordUserAnalyticsEvent } from "@/lib/analytics/server";
 import type { JobApplication, JobDraft } from "@/lib/types";
 import { requireUserId } from "@/lib/services/server-auth";
 
@@ -62,6 +63,9 @@ export async function createJob(
     });
 
   const snapshot = await docRef.get();
+  if (payload.status === "applied") {
+    await recordUserAnalyticsEvent(uid, "job_applied", { source: payload.source ?? "manual" });
+  }
   return serializeJob(docRef.id, snapshot.data() || {});
 }
 
@@ -78,17 +82,25 @@ export async function updateJob(
     .doc(uid)
     .collection("jobs")
     .doc(jobId);
+  const beforeSnap = await docRef.get();
+  const previousStatus = (beforeSnap.data()?.status ?? "").toString().toLowerCase();
+  const nextStatus = (payload.status ?? previousStatus).toString().toLowerCase();
 
-  await docRef.update({
+  const updateData: Record<string, unknown> = {
     ...payload,
-    jobDescription: payload.jobDescription ?? "",
-    jobUrl: payload.jobUrl ?? "",
-    applicationUrl: payload.applicationUrl ?? "",
-    followUpDate: payload.followUpDate ?? "",
     updatedAt: now,
-  });
+  };
+  if ("jobDescription" in payload) updateData.jobDescription = payload.jobDescription ?? "";
+  if ("jobUrl" in payload) updateData.jobUrl = payload.jobUrl ?? "";
+  if ("applicationUrl" in payload) updateData.applicationUrl = payload.applicationUrl ?? "";
+  if ("followUpDate" in payload) updateData.followUpDate = payload.followUpDate ?? "";
+
+  await docRef.update(updateData);
 
   const snapshot = await docRef.get();
+  if (nextStatus === "applied" && previousStatus !== "applied") {
+    await recordUserAnalyticsEvent(uid, "job_applied", { source: payload.source ?? "manual" });
+  }
   return serializeJob(snapshot.id, snapshot.data() || {});
 }
 

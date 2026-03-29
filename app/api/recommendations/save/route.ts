@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 
 import { HttpError, verifyIdToken } from "@/lib/auth/verify-id-token";
 import { adminDb } from "@/lib/firebase/admin";
+import { captureServerError } from "@/lib/monitoring/capture-server-error";
 import { getUtcDateKey } from "@/lib/services/usage-limits";
 
 export const runtime = "nodejs";
@@ -12,6 +13,7 @@ function handleError(error: unknown, digest: string) {
   if (error instanceof HttpError) {
     return NextResponse.json({ ok: false, error: error.message, digest }, { status: error.status });
   }
+  captureServerError(error, { route: "api/recommendations/save", digest });
   console.error("api/recommendations/save", digest, error);
   return NextResponse.json({ ok: false, error: "internal_error", digest }, { status: 500 });
 }

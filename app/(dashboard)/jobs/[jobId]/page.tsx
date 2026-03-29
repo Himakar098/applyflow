@@ -327,6 +327,10 @@ export default function JobWorkspacePage({ params }: { params: { jobId: string }
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => router.push(`/jobs/${job.id}/apply-assistant`)}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            Open Apply Assistant
+          </Button>
           <Button variant="outline" onClick={() => router.push(`/tailor?jobId=${job.id}`)}>
             Open in Tailor
           </Button>

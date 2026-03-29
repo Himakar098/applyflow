@@ -4,6 +4,7 @@ import { ShieldCheck, Sparkles, Target } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getBetaPrimaryCta } from "@/lib/beta/config";
 
 const values = [
   {
@@ -24,6 +25,8 @@ const values = [
 ];
 
 export default function AboutPage() {
+  const primaryCta = getBetaPrimaryCta();
+
   return (
     <MarketingShell>
       <section className="container space-y-4 pt-6 text-center">
@@ -83,7 +86,7 @@ export default function AboutPage() {
             Create your ApplyFlow workspace in minutes and start moving toward interviews.
           </p>
           <Button asChild>
-            <Link href="/register">Start free</Link>
+            <Link href={primaryCta.href}>{primaryCta.label}</Link>
           </Button>
         </div>
       </section>

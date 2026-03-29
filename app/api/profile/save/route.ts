@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 
 import { HttpError, verifyIdToken } from "@/lib/auth/verify-id-token";
 import { adminDb } from "@/lib/firebase/admin";
+import { captureServerError } from "@/lib/monitoring/capture-server-error";
 import { normalizeProfile } from "@/lib/profile/normalize";
 
 export const runtime = "nodejs";
@@ -16,6 +17,7 @@ function handleError(error: unknown, digest: string) {
     );
   }
 
+  captureServerError(error, { route: "api/profile/save", digest });
   console.error("api/profile/save", digest, error);
   return NextResponse.json(
     { ok: false, error: "internal_error", digest },

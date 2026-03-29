@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Menu, Sparkles } from "lucide-react";
 
+import { PublicBetaBanner } from "@/components/beta/public-beta-banner";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -12,16 +13,20 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { getBetaPrimaryCta } from "@/lib/beta/config";
 import { siteConfig } from "@/lib/site-config";
 
 const navLinks = [
   { label: "Features", href: "/#features" },
   { label: "Pricing", href: "/pricing" },
   { label: "Resources", href: "/resources" },
+  { label: "Extension", href: "/browser-extension" },
   { label: "About", href: "/about" },
 ];
 
 export function MarketingNav() {
+  const primaryCta = getBetaPrimaryCta();
+
   return (
     <header className="sticky top-0 z-40 border-b border-white/40 bg-white/70 backdrop-blur-2xl">
       <div className="container flex items-center justify-between py-4">
@@ -48,7 +53,7 @@ export function MarketingNav() {
         </div>
         <div className="flex items-center gap-2 lg:hidden">
           <Button asChild size="sm">
-            <Link href="/register">Try it now</Link>
+            <Link href={primaryCta.href}>{primaryCta.label}</Link>
           </Button>
           <Sheet>
             <SheetTrigger asChild>
@@ -76,7 +81,7 @@ export function MarketingNav() {
                 </nav>
                 <div className="space-y-2">
                   <Button asChild className="w-full">
-                    <Link href="/register">Try it now</Link>
+                    <Link href={primaryCta.href}>{primaryCta.label}</Link>
                   </Button>
                   <Button asChild variant="outline" className="w-full">
                     <Link href="/login">Login</Link>
@@ -109,6 +114,7 @@ export function MarketingFooter() {
         { label: "Job Search Playbook", href: "/resources" },
         { label: "Resume Kit", href: "/resources" },
         { label: "Interview Prep", href: "/resources" },
+        { label: "Extension Setup", href: "/browser-extension" },
         { label: "FAQ", href: "/resources" },
         { label: "Support", href: `mailto:${siteConfig.supportEmail}` },
       ],
@@ -198,6 +204,7 @@ export function MarketingFooter() {
 export function MarketingShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative">
+      <PublicBetaBanner />
       <MarketingNav />
       <main className="space-y-24 pb-24">{children}</main>
       <MarketingFooter />

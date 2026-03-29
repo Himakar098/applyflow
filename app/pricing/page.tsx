@@ -4,38 +4,40 @@ import { CheckCircle2 } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getBetaPrimaryCta } from "@/lib/beta/config";
 import { siteConfig } from "@/lib/site-config";
 
-const tiers = [
-  {
-    name: "Free",
-    description: "Get started with profile building and core tracking.",
-    badge: "Available now",
-    features: [
-      "Resume upload + profile extraction",
-      "Job recommendations and saved searches",
-      "Application tracker + reminders",
-      "Basic tailored packs",
-    ],
-    ctaLabel: "Start free",
-    ctaHref: "/register",
-  },
-  {
-    name: "Pro",
-    description: "Advanced AI assistance and deeper insights.",
-    badge: "Coming soon",
-    features: [
-      "Unlimited tailored packs",
-      "Advanced job matching filters",
-      "Priority AI generation",
-      "Weekly performance insights",
-    ],
-    ctaLabel: "Contact support",
-    ctaHref: `mailto:${siteConfig.supportEmail}`,
-  },
-];
-
 export default function PricingPage() {
+  const primaryCta = getBetaPrimaryCta();
+  const tiers = [
+    {
+      name: "Free",
+      description: "Get started with profile building and core tracking.",
+      badge: "Available now",
+      features: [
+        "Resume upload + profile extraction",
+        "Job recommendations and saved searches",
+        "Application tracker + reminders",
+        "Basic tailored packs",
+      ],
+      ctaLabel: primaryCta.label,
+      ctaHref: primaryCta.href,
+    },
+    {
+      name: "Pro",
+      description: "Advanced AI assistance and deeper insights.",
+      badge: "Coming soon",
+      features: [
+        "Unlimited tailored packs",
+        "Advanced job matching filters",
+        "Priority AI generation",
+        "Weekly performance insights",
+      ],
+      ctaLabel: "Contact support",
+      ctaHref: `mailto:${siteConfig.supportEmail}`,
+    },
+  ];
+
   return (
     <MarketingShell>
       <section className="container space-y-4 pt-6 text-center">

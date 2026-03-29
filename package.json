@@ -7,12 +7,19 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:pdf-extract": "node scripts/test-pdf-extract.mjs"
+    "test:pdf-extract": "node scripts/test-pdf-extract.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "perf:api": "node scripts/perf-api-smoke.mjs",
+    "package:extensions": "python3 scripts/package_browser_extension.py",
+    "launch:check": "node scripts/launch-readiness.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.11",
+    "@radix-ui/react-checkbox": "^1.3.3",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-label": "^2.1.8",
@@ -21,6 +28,7 @@
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-toast": "^1.2.15",
+    "@sentry/nextjs": "^10.40.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -35,11 +43,13 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-hook-form": "^7.71.1",
+    "recharts": "^3.8.0",
     "sonner": "^2.0.7",
-    "tailwind-merge": "^3.4.0",
+    "tailwind-merge": "^3.5.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

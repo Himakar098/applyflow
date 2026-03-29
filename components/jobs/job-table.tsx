@@ -56,28 +56,32 @@ export function JobTable({ jobs, onEdit, onDelete }: JobTableProps) {
 
   return (
     <div className="surface-card overflow-hidden">
-      <Table>
+      <Table responsive>
         <TableHeader>
           <TableRow className="bg-muted/50">
             <TableHead>Role</TableHead>
             <TableHead>Company</TableHead>
-            <TableHead>Location</TableHead>
-            <TableHead>Source</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Applied</TableHead>
-          <TableHead>Follow-up</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
+            <TableHead className="hidden md:table-cell">Location</TableHead>
+            <TableHead className="hidden sm:table-cell">Source</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="hidden lg:table-cell">Applied</TableHead>
+            <TableHead className="hidden lg:table-cell">Follow-up</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {jobs.map((job) => (
             <TableRow key={job.id} className="hover:bg-muted/40">
-              <TableCell className="font-medium">{job.title}</TableCell>
-              <TableCell>{job.company}</TableCell>
-              <TableCell className="text-muted-foreground">
+              <TableCell className="font-medium max-w-xs md:max-w-none truncate md:truncate-none">
+                {job.title}
+              </TableCell>
+              <TableCell className="max-w-xs md:max-w-none truncate md:truncate-none">
+                {job.company}
+              </TableCell>
+              <TableCell className="hidden md:table-cell text-muted-foreground">
                 {job.location || "—"}
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden sm:table-cell">
                 <Badge
                   variant="outline"
                   className={cn(
@@ -91,22 +95,33 @@ export function JobTable({ jobs, onEdit, onDelete }: JobTableProps) {
               <TableCell>
                 <StatusBadge status={job.status} />
               </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
+              <TableCell className="hidden lg:table-cell text-sm text-muted-foreground whitespace-nowrap">
                 {job.appliedDate
-                  ? new Date(job.appliedDate).toLocaleDateString()
+                  ? new Date(job.appliedDate).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })
                   : "—"}
               </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
+              <TableCell className="hidden lg:table-cell text-sm text-muted-foreground whitespace-nowrap">
                 {job.followUpDate
-                  ? new Date(job.followUpDate).toLocaleDateString()
+                  ? new Date(job.followUpDate).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })
                   : "—"}
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      aria-label={`Actions for ${job.title}`}
+                    >
                       <EllipsisVertical className="h-4 w-4" />
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">Actions for {job.title}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-36">

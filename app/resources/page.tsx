@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { BookOpen, FileText, HelpCircle, Sparkles } from "lucide-react";
+import { BookOpen, FileText, HelpCircle, Puzzle, Sparkles } from "lucide-react";
 
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getBetaPrimaryCta } from "@/lib/beta/config";
 import { siteConfig } from "@/lib/site-config";
 
 const resources = [
@@ -31,9 +32,18 @@ const resources = [
     icon: HelpCircle,
     status: "Available now",
   },
+  {
+    title: "Browser Extension Setup",
+    description: "Install steps for Chrome, Edge, and Safari beta users.",
+    icon: Puzzle,
+    status: "Available now",
+    href: "/browser-extension",
+  },
 ];
 
 export default function ResourcesPage() {
+  const primaryCta = getBetaPrimaryCta();
+
   return (
     <MarketingShell>
       <section className="container space-y-4 pt-6 text-center">
@@ -52,7 +62,7 @@ export default function ResourcesPage() {
       <section className="container grid gap-6 md:grid-cols-2">
         {resources.map((resource) => {
           const Icon = resource.icon;
-          return (
+          const content = (
             <div key={resource.title} className="surface-card space-y-4 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -68,18 +78,38 @@ export default function ResourcesPage() {
               </div>
             </div>
           );
+
+          return resource.href ? (
+            <Link key={resource.title} href={resource.href} className="block transition hover:-translate-y-0.5">
+              {content}
+            </Link>
+          ) : (
+            content
+          );
         })}
       </section>
 
       <section className="container">
         <div className="surface-panel flex flex-col items-center gap-4 px-6 py-10 text-center md:px-10">
+          <Badge className="rounded-full" variant="secondary">
+            Public beta
+          </Badge>
           <h3 className="text-2xl font-semibold text-foreground">Need help right now?</h3>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Reach out to the ApplyFlow team and we&apos;ll help you move forward quickly.
+            Public beta users can join the current wave, review extension setup, or reach out
+            to the ApplyFlow team for help.
           </p>
-          <Button asChild>
-            <Link href={`mailto:${siteConfig.supportEmail}`}>Contact support</Link>
-          </Button>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button asChild>
+              <Link href={primaryCta.href}>{primaryCta.label}</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/browser-extension">View extension guide</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`mailto:${siteConfig.supportEmail}`}>Contact support</Link>
+            </Button>
+          </div>
         </div>
       </section>
     </MarketingShell>

@@ -19,11 +19,14 @@ export default function DashboardLayout({
       <div className="flex min-h-screen bg-transparent">
         <Sidebar />
         <div className="flex flex-1 flex-col">
-          <header className="sticky top-0 z-30 border-b border-white/40 bg-white/70 backdrop-blur-2xl">
+          <header
+            className="sticky top-0 z-30 border-b border-white/40 bg-white/70 backdrop-blur-2xl"
+            role="banner"
+          >
             <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div className="space-y-1">
-                <div className="chip">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <div className="chip" aria-label="Current status: Career mission active">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
                   Career mission active
                 </div>
                 <h1 className="text-xl font-semibold text-foreground">
@@ -36,7 +39,11 @@ export default function DashboardLayout({
               <UserNav user={user} />
             </div>
           </header>
-          <main className="flex-1 px-4 py-6 pb-28 sm:px-6 sm:pb-8 lg:px-8 lg:pb-6">
+          <main
+            id="main-content"
+            className="flex-1 px-4 py-6 pb-28 sm:px-6 sm:pb-8 lg:px-8 lg:pb-6"
+            role="main"
+          >
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}

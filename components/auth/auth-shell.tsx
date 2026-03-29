@@ -27,14 +27,19 @@ export function AuthShell({
   backLink,
 }: AuthShellProps) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-transparent px-4 py-10">
+    <div
+      id="main-content"
+      className="flex min-h-screen items-center justify-center bg-transparent px-4 py-10"
+      role="main"
+    >
       <div className="w-full max-w-md">
         {backLink ? (
           <Link
             href={backLink.href}
-            className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
+            className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded px-2 py-1"
+            aria-label={`Back to ${backLink.label}`}
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             {backLink.label}
           </Link>
         ) : null}

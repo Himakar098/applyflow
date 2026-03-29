@@ -9,6 +9,23 @@ export type JobSource =
   | "Referral"
   | "Other";
 
+export type ApplicationOutcome = "applied" | "rejected" | "ghosted" | "interview" | "offer" | "negotiating" | "accepted" | "declined";
+
+export type ApplicationFeedback = {
+  outcome: ApplicationOutcome;
+  recordedAt: string;
+  userNotes?: string;
+};
+
+export type AutoApplyMetadata = {
+  recommendationId: string;
+  submittedAt: string;
+  queueId: string;
+  method: "auto_submit" | "auto_fill_manual_submit";
+  filledForms?: string[];
+  manualTasksPending?: string[]; // Task IDs
+};
+
 export type JobApplication = {
   id: string;
   company: string;
@@ -25,6 +42,10 @@ export type JobApplication = {
   createdAt: string;
   updatedAt: string;
   checklist?: Record<string, boolean>;
+  // Auto-apply tracking
+  autoApplied?: AutoApplyMetadata;
+  // Application outcome feedback
+  feedback?: ApplicationFeedback;
 };
 
 export type JobDraft = Omit<JobApplication, "id" | "createdAt" | "updatedAt">;

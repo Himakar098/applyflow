@@ -2,7 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, CheckCircle2, EyeOff, Filter, Loader2, RefreshCcw, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowUpRight,
+  Building2,
+  EyeOff,
+  Filter,
+  Loader2,
+  MapPin,
+  RefreshCcw,
+  RotateCcw,
+  Sparkles,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +23,10 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageTour } from "@/components/onboarding/page-tour";
 import { useToast } from "@/hooks/use-toast";
+import { trackAnalyticsEvent } from "@/lib/analytics/client";
+import { useAuth } from "@/lib/auth/auth-provider";
 import { getAuthHeader } from "@/lib/firebase/getIdToken";
 import { trackGamificationEvent } from "@/lib/gamification/client";
 
@@ -46,10 +60,34 @@ type RecommendationResponse = {
   missing?: string[];
 };
 
+function inferWorkMode(job: RecommendedJob) {
+  const haystack = `${job.title} ${job.description ?? ""} ${job.location ?? ""}`.toLowerCase();
+  if (haystack.includes("remote")) return "Remote";
+  if (haystack.includes("hybrid")) return "Hybrid";
+  if (haystack.includes("on-site") || haystack.includes("onsite")) return "Onsite";
+  return null;
+}
+
+function getMatchTier(score: number) {
+  if (score >= 85) return { label: "High fit", tone: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+  if (score >= 70) return { label: "Good fit", tone: "bg-primary/10 text-primary border-primary/20" };
+  return { label: "Possible fit", tone: "bg-slate-100 text-slate-700 border-slate-200" };
+}
+
+function truncateText(value?: string, max = 180) {
+  if (!value) return "";
+  const compact = value.replace(/\s+/g, " ").trim();
+  if (compact.length <= max) return compact;
+  return `${compact.slice(0, max).trimEnd()}...`;
+}
+
 export default function RecommendationsPage() {
+  const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [startingApplyId, setStartingApplyId] = useState<string | null>(null);
   const [items, setItems] = useState<RecommendedJob[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [savedMap, setSavedMap] = useState<Record<string, string>>({});
@@ -64,6 +102,13 @@ export default function RecommendationsPage() {
   const [workModeFilter, setWorkModeFilter] = useState("any");
   const [locationFilter, setLocationFilter] = useState("");
   const [keywordFilter, setKeywordFilter] = useState("");
+
+  const resetFilters = () => {
+    setMinScoreFilter("55");
+    setWorkModeFilter("any");
+    setLocationFilter("");
+    setKeywordFilter("");
+  };
 
   const filteredTopItems = useMemo(() => {
     let next = [...items];
@@ -107,6 +152,14 @@ export default function RecommendationsPage() {
   const scopeLabel = appliedScope
     ? `${appliedScope.charAt(0).toUpperCase()}${appliedScope.slice(1)}`
     : null;
+  const activeFilterBadges = useMemo(() => {
+    const badges: string[] = [];
+    if (minScoreFilter !== "55") badges.push(`Match ${minScoreFilter}+`);
+    if (workModeFilter !== "any") badges.push(`Mode ${workModeFilter}`);
+    if (locationFilter.trim()) badges.push(`Location ${locationFilter.trim()}`);
+    if (keywordFilter.trim()) badges.push(`Keyword ${keywordFilter.trim()}`);
+    return badges;
+  }, [keywordFilter, locationFilter, minScoreFilter, workModeFilter]);
 
   const loadRecommendations = async (opts?: { refresh?: boolean }) => {
     if (opts?.refresh) {
@@ -136,6 +189,12 @@ export default function RecommendationsPage() {
       setAppliedScope(data.appliedScope ?? null);
       setProvider(data.provider ?? null);
       setMissingPrefs([]);
+      if (opts?.refresh) {
+        await trackAnalyticsEvent("recommendation_refreshed", {
+          provider: data.provider ?? null,
+          itemCount: (data.items ?? []).length,
+        });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load recommendations";
       toast({ title: "Recommendations unavailable", description: message, variant: "destructive" });
@@ -166,6 +225,10 @@ export default function RecommendationsPage() {
         setSavedMap((prev) => ({ ...prev, [job.id]: data.id }));
       }
       await trackGamificationEvent("recommendation_saved");
+      await trackAnalyticsEvent("recommendation_saved", {
+        source: job.source,
+        matchScore: job.matchScore,
+      });
       toast({ title: "Saved to Job Tracker" });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Save failed";
@@ -173,27 +236,42 @@ export default function RecommendationsPage() {
     }
   };
 
-  const applyJob = async (job: RecommendedJob) => {
+  const startApplyAssistant = async (job: RecommendedJob) => {
+    setStartingApplyId(job.id);
     try {
+      let workspaceId = savedMap[job.id];
       const headers = await getAuthHeader();
       if (!headers) return;
-      const res = await fetch("/api/recommendations/save", {
-        method: "POST",
-        headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ job, status: "applied", hideAfterSave: true }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Unable to mark as applied");
-      setSavedIds((prev) => [...prev, job.id]);
-      if (data.id) {
-        setSavedMap((prev) => ({ ...prev, [job.id]: data.id }));
+      if (!workspaceId) {
+        const res = await fetch("/api/recommendations/save", {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({ job }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Unable to prepare apply assistant");
+        workspaceId = data.id ?? "";
+        setSavedIds((prev) => [...prev, job.id]);
+        if (workspaceId) {
+          setSavedMap((prev) => ({ ...prev, [job.id]: workspaceId }));
+        }
+        await trackGamificationEvent("recommendation_saved");
+        await trackAnalyticsEvent("recommendation_saved", {
+          source: job.source,
+          matchScore: job.matchScore,
+        });
       }
-      setItems((prev) => prev.filter((item) => item.id !== job.id));
-      await trackGamificationEvent("recommendation_saved");
-      toast({ title: "Marked as applied", description: "Moved to applied jobs and removed from recommendations." });
+
+      if (!workspaceId) {
+        throw new Error("Unable to open apply assistant");
+      }
+
+      router.push(`/jobs/${workspaceId}/apply-assistant?recId=${encodeURIComponent(job.id)}`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Apply action failed";
-      toast({ title: "Apply action failed", description: message, variant: "destructive" });
+      const message = error instanceof Error ? error.message : "Unable to open apply assistant";
+      toast({ title: "Apply assistant unavailable", description: message, variant: "destructive" });
+    } finally {
+      setStartingApplyId(null);
     }
   };
 
@@ -216,43 +294,111 @@ export default function RecommendationsPage() {
   const renderJobCard = (job: RecommendedJob) => {
     const isSaved = savedIds.includes(job.id);
     const workspaceId = savedMap[job.id];
+    const workMode = inferWorkMode(job);
+    const matchTier = getMatchTier(job.matchScore);
+    const shortDescription = truncateText(job.description, 220);
+    const topReasons = job.matchReasons.slice(0, 3);
+
     return (
       <Card key={job.id} className="surface-card">
-        <CardHeader>
+        <CardHeader className="space-y-4">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-lg">
-                {job.title} @ {job.company}
+            <div className="min-w-0 space-y-2">
+              <CardTitle className="text-lg leading-tight">
+                {job.title}
               </CardTitle>
-              <CardDescription>{job.location || "Location not specified"}</CardDescription>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-1">
+                  <Building2 className="h-4 w-4" />
+                  <span className="truncate">{job.company}</span>
+                </span>
+                <span className="hidden text-slate-300 sm:inline">•</span>
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  <span>{job.location || "Location not specified"}</span>
+                </span>
+              </div>
             </div>
-            <Badge className="rounded-full bg-primary/10 text-primary">
-              {job.matchScore} match
-            </Badge>
+            <div className="shrink-0 space-y-2 text-right">
+              <Badge className={`rounded-full border ${matchTier.tone}`}>
+                {matchTier.label}
+              </Badge>
+              <p className="text-sm font-semibold text-foreground">{job.matchScore}% match</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Progress value={job.matchScore} className="h-2" />
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">Source: {job.source}</Badge>
+              {workMode ? <Badge variant="secondary">{workMode}</Badge> : null}
+              {isSaved ? <Badge variant="secondary">Saved</Badge> : null}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="space-y-1 text-sm text-muted-foreground">
-            {job.matchReasons.map((reason) => (
-              <p key={reason}>• {reason}</p>
-            ))}
+          {shortDescription ? (
+            <p className="text-sm text-muted-foreground">{shortDescription}</p>
+          ) : null}
+
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Why this fits
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {topReasons.map((reason) => (
+                <Badge key={reason} variant="outline" className="border-primary/20 bg-primary/5 text-primary">
+                  {reason}
+                </Badge>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+
+          <div className="flex flex-wrap gap-2 pt-1">
             {isSaved && workspaceId ? (
-              <Button asChild variant="outline">
-                <Link href={`/jobs/${workspaceId}`}>
-                  Open Job Workspace
-                  <ArrowUpRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+              <>
+                <Button onClick={() => startApplyAssistant(job)} disabled={startingApplyId === job.id}>
+                  {startingApplyId === job.id ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Opening...
+                    </>
+                  ) : (
+                    "Apply with assistant"
+                  )}
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href={`/jobs/${workspaceId}`}>
+                    Open workspace
+                    <ArrowUpRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </>
             ) : isSaved ? (
-              <Badge variant="outline">Saved</Badge>
+              <>
+                <Button variant="secondary" onClick={() => startApplyAssistant(job)} disabled={startingApplyId === job.id}>
+                  {startingApplyId === job.id ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Opening...
+                    </>
+                  ) : (
+                    "Apply with assistant"
+                  )}
+                </Button>
+                <Badge variant="outline">Saved</Badge>
+              </>
             ) : (
               <>
-                <Button onClick={() => saveJob(job)}>Save to Job Tracker</Button>
-                <Button variant="secondary" onClick={() => applyJob(job)}>
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Mark as applied
+                <Button onClick={() => saveJob(job)}>Save to tracker</Button>
+                <Button variant="secondary" onClick={() => startApplyAssistant(job)} disabled={startingApplyId === job.id}>
+                  {startingApplyId === job.id ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Opening...
+                    </>
+                  ) : (
+                    "Apply with assistant"
+                  )}
                 </Button>
               </>
             )}
@@ -344,16 +490,57 @@ export default function RecommendationsPage() {
         </div>
       </div>
 
+      <PageTour
+        storageKey="recommendations"
+        userId={user?.uid}
+        eyebrow="Recommendations tour"
+        title="Use recommendations as your decision layer, not just another job list."
+        description="Start with the highest-fit roles, use filters only when needed, and move strong roles into Apply Assistant or the tracker."
+        badgeLabel="Quick path"
+        steps={[
+          {
+            title: "Read the fit signal first",
+            description: "Focus on match score, fit tier, and the “Why this fits” chips before opening external links.",
+          },
+          {
+            title: "Filter without getting stuck",
+            description: "Use minimum match, work mode, location, and keyword filters. Reset if the list gets too narrow.",
+          },
+          {
+            title: "Save strong roles to your tracker",
+            description: "Store roles you want to work on so the tracker becomes your single pipeline view.",
+            href: "/jobs",
+            ctaLabel: "Open tracker",
+          },
+          {
+            title: "Use Apply Assistant for company sites",
+            description: "For good matches on employer career pages, launch Apply Assistant instead of applying manually.",
+            href: "/extensions",
+            ctaLabel: "Extension setup",
+          },
+        ]}
+      />
+
       <Card className="surface-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Filter className="h-4 w-4" />
-            Active filters
-          </CardTitle>
-          <CardDescription>Top 10 profile matches after filters.</CardDescription>
+        <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Filter className="h-4 w-4" />
+              Active filters
+            </CardTitle>
+            <CardDescription>Top 10 profile matches after filters.</CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="secondary">Showing {filteredTopItems.length} of {items.length}</Badge>
+            <Button variant="ghost" size="sm" onClick={resetFilters}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset filters
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-2">
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-2">
             <Label>Minimum match</Label>
             <Select value={minScoreFilter} onValueChange={setMinScoreFilter}>
               <SelectTrigger>
@@ -397,6 +584,18 @@ export default function RecommendationsPage() {
               onChange={(e) => setKeywordFilter(e.target.value)}
             />
           </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {activeFilterBadges.length ? (
+              activeFilterBadges.map((badge) => (
+                <Badge key={badge} variant="outline" className="border-primary/20 bg-primary/5 text-primary">
+                  {badge}
+                </Badge>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No extra filters active. Showing broad top matches.</p>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -433,8 +632,14 @@ export default function RecommendationsPage() {
         </Card>
       ) : filteredTopItems.length === 0 ? (
         <Card className="surface-card">
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No recommendations match your active filters. Relax filters to see more results.
+          <CardContent className="space-y-4 py-10 text-center text-sm text-muted-foreground">
+            <p>No recommendations match your active filters. Relax filters to see more results.</p>
+            <div className="flex justify-center">
+              <Button variant="outline" onClick={resetFilters}>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Clear filters
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (

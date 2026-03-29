@@ -7,7 +7,10 @@ import {
   Briefcase,
   Files,
   LayoutDashboard,
+  MessageSquareWarning,
   Menu,
+  MoreHorizontal,
+  Puzzle,
   Search,
   Settings,
   Sparkles,
@@ -23,6 +26,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -31,14 +40,23 @@ const links = [
   { label: "Job Tracker", href: "/jobs", icon: Briefcase },
   { label: "Recommendations", href: "/recommendations", icon: Target },
   { label: "Search", href: "/search", icon: Search },
+  { label: "Extensions", href: "/extensions", icon: Puzzle },
+  { label: "Feedback", href: "/feedback", icon: MessageSquareWarning },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
-const mobileLinks = [
+const primaryMobileLinks = [
   { label: "Home", href: "/dashboard", icon: LayoutDashboard },
   { label: "Jobs", href: "/jobs", icon: Briefcase },
-  { label: "Recs", href: "/recommendations", icon: Target },
+  { label: "Resumes", href: "/resume", icon: Files },
   { label: "Search", href: "/search", icon: Search },
+  { label: "More", href: "#more", icon: MoreHorizontal },
+];
+
+const secondaryMobileLinks = [
+  { label: "Recommendations", href: "/recommendations", icon: Target },
+  { label: "Extensions", href: "/extensions", icon: Puzzle },
+  { label: "Feedback", href: "/feedback", icon: MessageSquareWarning },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -112,9 +130,14 @@ export function Sidebar() {
         </div>
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon">
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Open navigation menu"
+              aria-expanded={mobileMenuOpen}
+            >
               <Menu className="h-4 w-4" />
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">Open navigation menu</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-72">
@@ -135,11 +158,51 @@ export function Sidebar() {
           </SheetContent>
         </Sheet>
       </div>
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/55 bg-white/85 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 backdrop-blur-2xl lg:hidden">
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/55 bg-white/85 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 backdrop-blur-2xl lg:hidden"
+        aria-label="Mobile navigation"
+      >
         <div className="mx-auto grid w-full max-w-xl grid-cols-5 gap-1">
-          {mobileLinks.map((link) => {
+          {primaryMobileLinks.map((link) => {
             const Icon = link.icon;
             const active = isLinkActive(pathname, link.href);
+
+            // Handle the "More" menu
+            if (link.href === "#more") {
+              return (
+                <DropdownMenu key={link.href}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={cn(
+                        "flex flex-col items-center justify-center rounded-xl px-2 py-2 text-[11px] font-medium transition-all",
+                        "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      )}
+                      aria-label="More options"
+                    >
+                      <Icon className="mb-1 h-4 w-4" />
+                      {link.label}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    {secondaryMobileLinks.map((secondaryLink) => {
+                      const SecondaryIcon = secondaryLink.icon;
+                      return (
+                        <DropdownMenuItem key={secondaryLink.href} asChild>
+                          <Link
+                            href={secondaryLink.href}
+                            className="flex gap-2 cursor-pointer"
+                          >
+                            <SecondaryIcon className="h-4 w-4" />
+                            {secondaryLink.label}
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            }
+
             return (
               <Link
                 key={link.href}
@@ -150,6 +213,7 @@ export function Sidebar() {
                     ? "bg-primary/10 text-primary ring-1 ring-primary/20"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
+                aria-current={active ? "page" : undefined}
               >
                 <Icon className="mb-1 h-4 w-4" />
                 {link.label}

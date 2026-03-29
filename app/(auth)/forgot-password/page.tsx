@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { getBetaPrimaryCta } from "@/lib/beta/config";
 import { auth } from "@/lib/firebase/client";
 
 const schema = z.object({
@@ -31,6 +32,7 @@ type FormValues = z.infer<typeof schema>;
 export default function ForgotPasswordPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const primaryCta = getBetaPrimaryCta();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -67,10 +69,10 @@ export default function ForgotPasswordPage() {
         <span className="text-muted-foreground">
           Need an account?{" "}
           <Link
-            href="/register"
+            href={primaryCta.href}
             className="font-medium text-primary underline-offset-4 hover:underline"
           >
-            Create one
+            {primaryCta.label}
           </Link>
         </span>
       }
