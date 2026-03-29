@@ -56,6 +56,11 @@ npm run package:extensions
 npm run launch:check
 ```
 
+### Firebase rules and indexes deploy
+```bash
+npm run firebase:deploy
+```
+
 ### API perf smoke
 ```bash
 PERF_BEARER_TOKEN=<firebase-id-token> npm run perf:api
@@ -88,6 +93,9 @@ npm run package:extensions
 - `lib/auth/*`
 - `next.config.ts`
 - `proxy.ts`
+- `firestore.rules`
+- `firestore.indexes.json`
+- `storage.rules`
 - browser extension permissions and store-facing files under `extension/`
 - public beta access controls and environment contract
 

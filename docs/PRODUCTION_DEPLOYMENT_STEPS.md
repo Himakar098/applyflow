@@ -44,12 +44,14 @@ Run in CI or before production promote:
 ```bash
 npm run lint
 npm run build
+npm run firebase:deploy
 npm run launch:check
 npm run test:e2e
 ```
 
 Notes:
 - `npm run launch:check` fails on missing required launch env values.
+- `npm run firebase:deploy` publishes the repo-managed Firestore rules, Firestore indexes, and Storage rules to `applyflow-c9741`.
 - `npm run test:e2e` authenticated tests require `E2E_TEST_EMAIL` and `E2E_TEST_PASSWORD`.
 
 ## 4) Post-Deploy Verification

@@ -1,0 +1,54 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isUnder10Mb() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    function isPdf() {
+      return request.resource.contentType.matches('application/pdf');
+    }
+
+    function isDocx() {
+      return request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        || request.resource.contentType.matches('application/msword')
+        || request.resource.contentType.matches('application/octet-stream');
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    match /users/{userId}/resumes/{fileName} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isUnder10Mb() && (isPdf() || isDocx());
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/documents/{fileName} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isUnder10Mb() && (isPdf() || isImage());
+      allow delete: if isOwner(userId);
+    }
+
+    // Existing download URLs should stay accessible to the owner, but we avoid
+    // allowing writes to paths the app does not manage explicitly.
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isOwner(userId);
+      allow write, delete: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

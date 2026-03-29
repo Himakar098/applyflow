@@ -172,9 +172,22 @@ Use one of these approaches:
 3. Create a Firebase Storage bucket.
 4. Add local and deployed domains to Firebase Auth authorized domains.
 5. Supply Firebase Admin credentials for server routes.
-6. Review Firestore and Storage rules before using real user data.
+6. Review the repo-managed Firebase config before using real user data:
+   - `firebase.json`
+   - `.firebaserc`
+   - `firestore.rules`
+   - `firestore.indexes.json`
+   - `storage.rules`
+7. Deploy the Firebase rules and indexes after you point the project alias at your Firebase project:
+```bash
+npm run firebase:deploy
+```
 
-This repo does not ship a turnkey Firebase project template. You will need to configure your own Firebase project and rules.
+The committed Firebase rules are intentionally conservative:
+- user documents live under `users/{uid}/...`
+- client access is limited to the authenticated owner
+- top-level support/marketing/system collections remain server-only
+- Storage uploads are limited to the file types and size constraints currently used by the app
 
 ## Local development workflow
 After `npm run dev`, the most useful routes to exercise are:
@@ -235,6 +248,7 @@ It does **not** yet have broad CI coverage or a formal release cadence.
 ## Deployment notes
 - The app is structured for Vercel deployment.
 - Firebase must be configured for both client and admin SDK access.
+- Firebase rules and indexes are versioned in this repo and can be deployed with `npm run firebase:deploy`.
 - Public beta mode is controlled by environment variables.
 - Browser-extension one-click install links become active once store URLs are configured.
 

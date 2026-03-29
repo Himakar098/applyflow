@@ -43,6 +43,7 @@ service-account.json
 
 # vercel
 .vercel
+.firebase/
 
 # typescript
 *.tsbuildinfo
