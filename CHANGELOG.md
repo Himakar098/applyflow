@@ -5,8 +5,12 @@ All notable changes to this project should be documented in this file.
 This changelog starts with the repository’s first public open-source preparation pass. Earlier development happened before a formal changelog process was in place and is not backfilled commit-by-commit.
 
 ## [Unreleased]
-### Changed
-- No unreleased entries yet
+### Added
+- Firebase emulator seed script and local emulator workflow documentation
+- Firebase config validation script and CI check
+
+### Documentation
+- Added `v0.1.1` release notes draft
 
 ## [0.1.1] - 2026-03-29
 ### Added

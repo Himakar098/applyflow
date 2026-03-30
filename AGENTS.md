@@ -66,6 +66,16 @@ npm run firebase:deploy
 npm run firebase:emulators
 ```
 
+### Firebase emulator seed data
+```bash
+npm run firebase:seed
+```
+
+### Firebase config validation
+```bash
+npm run firebase:check
+```
+
 ### API perf smoke
 ```bash
 PERF_BEARER_TOKEN=<firebase-id-token> npm run perf:api

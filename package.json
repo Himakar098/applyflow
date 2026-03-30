@@ -15,7 +15,9 @@
     "package:extensions": "python3 scripts/package_browser_extension.py",
     "launch:check": "node scripts/launch-readiness.mjs",
     "firebase:deploy": "firebase deploy --project applyflow-c9741 --only firestore:rules,firestore:indexes,storage",
-    "firebase:emulators": "firebase emulators:start"
+    "firebase:emulators": "firebase emulators:start",
+    "firebase:seed": "node --env-file=.env.local scripts/seed-firebase-emulators.mjs",
+    "firebase:check": "node scripts/check-firebase-config.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

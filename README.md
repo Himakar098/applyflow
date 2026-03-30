@@ -90,6 +90,7 @@ Use the docs in this order:
 - `README.md` for project overview and setup
 - `CONTRIBUTING.md` for contribution workflow
 - `SUPPORT.md` and `SECURITY.md` for issue handling
+- `docs/FIREBASE_EMULATORS.md` for local Firebase emulator and seed-data workflow
 - `docs/README.md` for the rest of the documentation map
 
 ## Requirements
@@ -186,6 +187,12 @@ npm run firebase:deploy
 ```bash
 npm run firebase:emulators
 ```
+9. To seed a demo local user and test data into the emulators:
+```bash
+npm run firebase:seed
+```
+
+The Firestore emulator requires a local Java runtime.
 
 The committed Firebase rules are intentionally conservative:
 - Storage objects live under `users/{uid}/...`
@@ -239,6 +246,16 @@ Notes:
 ### Launch readiness check
 ```bash
 npm run launch:check
+```
+
+### Firebase config validation
+```bash
+npm run firebase:check
+```
+
+### Firebase emulator seed data
+```bash
+npm run firebase:seed
 ```
 
 ## CI and maintenance signals
