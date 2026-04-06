@@ -23,6 +23,24 @@ export type Provider = {
   fetch: (input: ProviderInput) => Promise<ExternalJob[]>;
 };
 
+function resolveRecommendationProvider() {
+  const explicit = (process.env.RECOMMENDATIONS_PROVIDER ?? "").trim().toLowerCase();
+
+  if (explicit === "adzuna" && process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY) {
+    return "adzuna";
+  }
+
+  if (!explicit && process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY) {
+    return "adzuna";
+  }
+
+  if (explicit !== "mock" && process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY) {
+    return "adzuna";
+  }
+
+  return "mock";
+}
+
 const DEFAULT_TIMEOUT_MS = 7000;
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = DEFAULT_TIMEOUT_MS) {
@@ -162,7 +180,7 @@ function mockProvider(input: ProviderInput): ExternalJob[] {
 }
 
 export function getRecommendationProvider(): Provider {
-  const provider = process.env.RECOMMENDATIONS_PROVIDER ?? "mock";
+  const provider = resolveRecommendationProvider();
   if (provider === "adzuna") {
     return {
       name: "Adzuna",

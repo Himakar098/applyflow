@@ -26,6 +26,11 @@ export async function GET(req: NextRequest) {
 
     let firestore = "skipped";
     let firestoreData: Record<string, unknown> = {};
+    const searchProvider = (process.env.JOB_SEARCH_PROVIDER ?? "").trim().toLowerCase();
+    const recommendationProvider = (process.env.RECOMMENDATIONS_PROVIDER ?? "")
+      .trim()
+      .toLowerCase();
+
     const envChecks = {
       siteUrl: Boolean(process.env.NEXT_PUBLIC_SITE_URL),
       supportEmail: Boolean(process.env.NEXT_PUBLIC_SUPPORT_EMAIL),
@@ -38,6 +43,22 @@ export async function GET(req: NextRequest) {
             process.env.FIREBASE_CLIENT_EMAIL &&
             process.env.FIREBASE_PRIVATE_KEY),
       ),
+      jobSearchProvider: searchProvider || "unset",
+      jobSearchConfigured:
+        (searchProvider === "adzuna" &&
+          Boolean(process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY)) ||
+        (searchProvider === "serpapi" && Boolean(process.env.SERPAPI_API_KEY)) ||
+        (!searchProvider &&
+          Boolean(
+            (process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY) ||
+              process.env.SERPAPI_API_KEY,
+          )),
+      recommendationsProvider: recommendationProvider || "unset",
+      recommendationsConfigured:
+        (recommendationProvider === "adzuna" &&
+          Boolean(process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY)) ||
+        (!recommendationProvider &&
+          Boolean(process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY)),
     };
     const betaConsistency = getBetaModeConsistency();
 

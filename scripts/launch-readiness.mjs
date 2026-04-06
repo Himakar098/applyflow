@@ -108,6 +108,42 @@ addCheck(
   "required NEXT_PUBLIC_FIREBASE_* variables must be set",
 );
 
+const searchProvider = (env.JOB_SEARCH_PROVIDER || "").trim();
+addCheck(
+  "JOB_SEARCH_PROVIDER",
+  ["adzuna", "serpapi"].includes(searchProvider),
+  `set to adzuna or serpapi for live search, got ${searchProvider || "<empty>"}`,
+);
+if (searchProvider === "adzuna") {
+  addCheck(
+    "Adzuna search credentials",
+    Boolean((env.ADZUNA_APP_ID || "").trim() && (env.ADZUNA_APP_KEY || "").trim()),
+    "ADZUNA_APP_ID and ADZUNA_APP_KEY are required when JOB_SEARCH_PROVIDER=adzuna",
+  );
+}
+if (searchProvider === "serpapi") {
+  addCheck(
+    "SerpAPI search credential",
+    Boolean((env.SERPAPI_API_KEY || "").trim()),
+    "SERPAPI_API_KEY is required when JOB_SEARCH_PROVIDER=serpapi",
+  );
+}
+
+const recommendationProvider = (env.RECOMMENDATIONS_PROVIDER || "").trim();
+addCheck(
+  "RECOMMENDATIONS_PROVIDER",
+  recommendationProvider === "adzuna",
+  `set to adzuna for live recommendation sourcing, got ${recommendationProvider || "<empty>"}`,
+  "warn",
+);
+if (recommendationProvider === "adzuna") {
+  addCheck(
+    "Adzuna recommendation credentials",
+    Boolean((env.ADZUNA_APP_ID || "").trim() && (env.ADZUNA_APP_KEY || "").trim()),
+    "ADZUNA_APP_ID and ADZUNA_APP_KEY are required when RECOMMENDATIONS_PROVIDER=adzuna",
+  );
+}
+
 addCheck(
   "SENTRY_DSN",
   Boolean((env.SENTRY_DSN || "").trim()),

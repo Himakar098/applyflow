@@ -30,6 +30,24 @@ type SearchFilters = {
   pageToken?: string;
 };
 
+function resolveSearchProvider() {
+  const explicit = (process.env.JOB_SEARCH_PROVIDER ?? "").trim().toLowerCase();
+
+  if (explicit === "adzuna" || explicit === "serpapi") {
+    return explicit;
+  }
+
+  if (process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY) {
+    return "adzuna";
+  }
+
+  if (process.env.SERPAPI_API_KEY) {
+    return "serpapi";
+  }
+
+  return "none";
+}
+
 type SerpApiJob = {
   title?: string;
   company_name?: string;
@@ -151,7 +169,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const provider = process.env.JOB_SEARCH_PROVIDER ?? "none";
+    const provider = resolveSearchProvider();
     const query = body.query?.toString().trim() ?? "";
     const location = body.location?.toString().trim() ?? "";
     const jobUrl = body.jobUrl?.toString().trim() ?? "";
@@ -196,7 +214,7 @@ export async function POST(req: NextRequest) {
       if (data.error) {
         await trackSearch();
         return NextResponse.json(
-          { ok: true, results: [], warning: data.error, digest },
+          { ok: true, provider, results: [], warning: data.error, digest },
           { status: 200 },
         );
       }
@@ -213,7 +231,7 @@ export async function POST(req: NextRequest) {
       const warning = results.length === 0 ? "No results for this query/location." : undefined;
       await trackSearch();
       return NextResponse.json(
-        { ok: true, results, nextPageToken, warning, digest },
+        { ok: true, provider, results, nextPageToken, warning, digest },
         { status: 200 },
       );
     }
@@ -241,19 +259,25 @@ export async function POST(req: NextRequest) {
       }));
       const warning = results.length === 0 ? "No results for this query/location." : undefined;
       await trackSearch();
-      return NextResponse.json({ ok: true, results, warning, digest }, { status: 200 });
+      return NextResponse.json({ ok: true, provider, results, warning, digest }, { status: 200 });
     }
 
     if (jobUrl) {
       const fallback = normalizeFallback(jobUrl);
       return NextResponse.json(
-        { ok: true, results: fallback ? [fallback] : [], digest, warning: "SEARCH_NOT_CONFIGURED" },
+        {
+          ok: true,
+          provider,
+          results: fallback ? [fallback] : [],
+          digest,
+          warning: "SEARCH_NOT_CONFIGURED",
+        },
         { status: 200 },
       );
     }
 
     return NextResponse.json(
-      { ok: true, results: [], digest, warning: "SEARCH_NOT_CONFIGURED" },
+      { ok: true, provider, results: [], digest, warning: "SEARCH_NOT_CONFIGURED" },
       { status: 200 },
     );
   } catch (error) {

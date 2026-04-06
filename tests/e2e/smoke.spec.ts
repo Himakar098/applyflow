@@ -22,13 +22,13 @@ test("marketing + auth pages render", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /One workspace for your entire job search/i })).toBeVisible();
 
   await page.goto("/pricing");
-  await expect(page.getByRole("heading", { name: /Simple pricing that scales/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Current access/i })).toBeVisible();
 
   await page.goto("/resources");
-  await expect(page.getByRole("heading", { name: /Resources to keep your job search sharp/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Public reference pages/i })).toBeVisible();
 
   await page.goto("/about");
-  await expect(page.getByRole("heading", { name: /A career OS built for modern job seekers/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /ApplyFlow is built by Omnari Group/i })).toBeVisible();
 
   await page.goto("/forgot-password");
   await expect(page.getByText("Reset your password", { exact: true })).toBeVisible();
