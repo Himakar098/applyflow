@@ -181,15 +181,15 @@ export async function POST(req: NextRequest) {
 
     const trackSearch = async () => {
       if (!query) return;
-      const record: SearchHistory = {
+      const record = {
         query,
-        location: location || undefined,
-        remote: body.remote,
-        jobType: body.jobType,
-        datePosted: body.datePosted,
+        ...(location ? { location } : {}),
+        ...(body.remote ? { remote: body.remote } : {}),
+        ...(body.jobType ? { jobType: body.jobType } : {}),
+        ...(body.datePosted ? { datePosted: body.datePosted } : {}),
         provider,
         createdAt: FieldValue.serverTimestamp(),
-      };
+      } satisfies SearchHistory;
       try {
         await adminDb.collection("users").doc(uid).collection("searches").add(record);
       } catch (error) {

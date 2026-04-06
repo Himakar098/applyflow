@@ -139,6 +139,9 @@ function derivePreferences(profile: Profile, searches: SearchHistoryItem[]) {
 }
 
 const MAX_JOB_AGE_DAYS = 30;
+const PRIMARY_MIN_MATCH_SCORE = 55;
+const FALLBACK_MIN_MATCH_SCORE = 30;
+const MIN_RESULTS_BEFORE_FALLBACK = 3;
 
 function isRecent(postedAt?: string) {
   if (!postedAt) return true;
@@ -295,10 +298,15 @@ export async function GET(req: NextRequest) {
         : undefined;
     const warning = [baseWarning, locationScopeWarning].filter(Boolean).join(" ") || undefined;
 
-    let scored = scoreJobs(resolvedProfile as Profile, recentJobs)
-      .filter((job) => job.matchScore >= 55)
-      .sort((a, b) => b.matchScore - a.matchScore)
-      .slice(0, 10);
+    const rankedJobs = scoreJobs(resolvedProfile as Profile, recentJobs).sort(
+      (a, b) => b.matchScore - a.matchScore,
+    );
+
+    let scored = rankedJobs.filter((job) => job.matchScore >= PRIMARY_MIN_MATCH_SCORE).slice(0, 10);
+
+    if (scored.length < MIN_RESULTS_BEFORE_FALLBACK) {
+      scored = rankedJobs.filter((job) => job.matchScore >= FALLBACK_MIN_MATCH_SCORE).slice(0, 10);
+    }
 
     if (process.env.RECOMMENDATIONS_USE_OPENAI === "true" && process.env.OPENAI_API_KEY) {
       const profileForAi = {

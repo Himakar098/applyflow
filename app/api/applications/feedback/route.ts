@@ -6,6 +6,12 @@ import type {
   ApplicationOutcome,
 } from "@/lib/recommendations/feedback-learner";
 
+function omitUndefined<T extends Record<string, unknown>>(value: T) {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined),
+  ) as T;
+}
+
 function handleError(error: unknown, scope: string) {
   if (error instanceof HttpError) {
     return NextResponse.json({ error: error.message }, { status: error.status });
@@ -70,16 +76,18 @@ export async function POST(request: NextRequest) {
     const feedbackRecord: ApplicationFeedbackRecord = {
       jobId,
       recommendationId,
-      jobMetadata: jobMetadata || {
-        role: jobData?.title || "Unknown",
-        company: jobData?.company || "Unknown",
-        location: jobData?.location || "Unknown",
-        industry: jobData?.industry,
-        isRemote: jobData?.isRemote,
-        isHybrid: jobData?.isHybrid,
-        skillsRequired: jobData?.skillsRequired,
-        seniorityLevel: jobData?.seniorityLevel,
-      },
+      jobMetadata:
+        jobMetadata ||
+        omitUndefined({
+          role: jobData?.title || "Unknown",
+          company: jobData?.company || "Unknown",
+          location: jobData?.location || "Unknown",
+          industry: jobData?.industry,
+          isRemote: jobData?.isRemote,
+          isHybrid: jobData?.isHybrid,
+          skillsRequired: jobData?.skillsRequired,
+          seniorityLevel: jobData?.seniorityLevel,
+        }),
       outcome,
       userFeedback,
       timestamp: new Date().toISOString(),

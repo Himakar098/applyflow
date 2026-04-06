@@ -76,13 +76,28 @@ function computeTechMatch(profileTech: string[], jobText: string) {
   return { score, reason };
 }
 
+function expandLocationTerms(locations: string[]) {
+  return uniqueTokens(
+    locations.flatMap((location) =>
+      location
+        .split(/[,/]+/g)
+        .map((part) => part.trim())
+        .filter((part) => part.length >= 3),
+    ),
+  );
+}
+
 function computeLocationMatch(locations: string[], jobLocation?: string) {
   if (!locations.length) return { score: 0, reason: "" };
+
   const loc = (jobLocation ?? "").toLowerCase();
-  const matches = locations.filter((l) => loc.includes(l.toLowerCase()));
-  const remoteMatch = locations.some((l) => l.toLowerCase().includes("remote")) && loc.includes("remote");
-  const score = matches.length || remoteMatch ? 1 : 0;
-  const reason = score ? `Location preference matched: ${matches[0] ?? "Remote"}.` : "";
+  const directMatches = locations.filter((location) => loc.includes(location.toLowerCase()));
+  const expandedTerms = expandLocationTerms(locations);
+  const partialMatches = expandedTerms.filter((term) => loc.includes(term.toLowerCase()));
+  const remoteMatch = expandedTerms.some((term) => term.includes("remote")) && loc.includes("remote");
+  const matchedLocation = directMatches[0] ?? partialMatches[0] ?? (remoteMatch ? "Remote" : "");
+  const score = matchedLocation ? 1 : 0;
+  const reason = score ? `Location preference matched: ${matchedLocation}.` : "";
   return { score, reason };
 }
 
