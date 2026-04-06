@@ -14,16 +14,13 @@ export default function BrowserExtensionPage() {
   return (
     <MarketingShell>
       <section className="container space-y-4 pt-6 text-center">
-        <Badge className="rounded-full" variant="secondary">
-          Browser extension
-        </Badge>
         <h1 className="text-4xl font-semibold text-foreground sm:text-5xl">
-          Install the ApplyFlow extension for supported employer sites.
+          Browser extension for supported employer sites.
         </h1>
-        <p className="mx-auto max-w-3xl text-sm text-muted-foreground">
-          The extension is used when a job application lives on an employer careers page rather than inside Seek,
-          LinkedIn, or another aggregator. ApplyFlow prepares the job context, then the extension helps fill the form
-          faster. You still review before submission.
+        <p className="mx-auto max-w-3xl text-sm text-muted-foreground sm:text-base">
+          Use the extension when an application continues on an employer careers page.
+          ApplyFlow prepares the context, the extension helps fill supported forms, and you
+          still review before submission.
         </p>
       </section>
 
@@ -37,7 +34,7 @@ export default function BrowserExtensionPage() {
             <div className="rounded-xl border border-white/60 bg-white/70 p-4">
               <p className="text-sm font-semibold text-foreground">Syncs job context from ApplyFlow</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                The app sends your job, profile fields, and reusable answers into the extension.
+                The app sends the current job, profile fields, and reusable answers into the extension.
               </p>
             </div>
             <div className="rounded-xl border border-white/60 bg-white/70 p-4">
@@ -47,15 +44,15 @@ export default function BrowserExtensionPage() {
               </p>
             </div>
             <div className="rounded-xl border border-white/60 bg-white/70 p-4">
-              <p className="text-sm font-semibold text-foreground">Keeps review in the loop</p>
+              <p className="text-sm font-semibold text-foreground">Pauses around blockers</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                You still confirm the application on the employer page before it is counted as submitted.
+                Login walls, MFA, CAPTCHA, and upload restrictions still need manual user action.
               </p>
             </div>
             <div className="rounded-xl border border-white/60 bg-white/70 p-4">
-              <p className="text-sm font-semibold text-foreground">Pauses and resumes around blockers</p>
+              <p className="text-sm font-semibold text-foreground">Keeps review in the loop</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                CAPTCHAs, MFA, file-attachment restrictions, and login walls still require manual user action, but the extension can hold the session and resume autofill after you clear them.
+                You still confirm the employer application before it is marked as submitted.
               </p>
             </div>
           </CardContent>
@@ -65,14 +62,14 @@ export default function BrowserExtensionPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-primary" />
-              Best use cases
+              Best fit
             </CardTitle>
             <CardDescription>Where it helps most right now.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>Company career pages using supported ATS families.</p>
-            <p>Jobs where you already know the role is a strong fit and want to reduce repetitive typing.</p>
-            <p>Applications that ask common contact, location, work-rights, and written-answer questions.</p>
+            <p>Company career pages that use supported ATS families.</p>
+            <p>Applications with repeated contact, work-rights, location, and screening-question fields.</p>
+            <p>Roles you already decided to apply for and want to complete faster.</p>
             <div className="pt-2">
               <Button asChild>
                 <Link href={primaryCta.href}>{primaryCta.label}</Link>
@@ -168,14 +165,14 @@ export default function BrowserExtensionPage() {
         <Card className="surface-card">
           <CardHeader>
             <CardTitle>Quick use flow</CardTitle>
-            <CardDescription>The intended workflow once the extension is installed.</CardDescription>
+            <CardDescription>The intended sequence once the extension is installed.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-4">
             {[
               "Open Apply Assistant for the job and sync the extension context.",
               "Open the employer careers page in the same browser.",
-              "Click Start assisted autofill in the extension popup.",
-              "If login, CAPTCHA, or MFA appears, clear it on that tab. Autofill resumes automatically.",
+              "Run Start assisted autofill in the extension popup.",
+              "Clear login, CAPTCHA, or MFA if it appears. Autofill resumes after that.",
             ].map((step, index) => (
               <div key={step} className="rounded-xl border border-white/60 bg-white/70 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">Step {index + 1}</p>
@@ -192,10 +189,10 @@ export default function BrowserExtensionPage() {
             <Puzzle className="h-4 w-4" />
             Product boundary
           </div>
-          <h3 className="text-2xl font-semibold text-foreground">The extension is an assisted workflow, not a universal autopilot.</h3>
+          <h2 className="text-2xl font-semibold text-foreground">This is an assisted workflow, not a universal autopilot.</h2>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            The best current ApplyFlow experience is: build profile, review recommendations, open Apply Assistant,
-            sync the extension, finish the employer form, then confirm the submission back in ApplyFlow.
+            The intended ApplyFlow path is: review a role, open Apply Assistant, sync the extension,
+            complete the employer form, then confirm the submission back in ApplyFlow.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button asChild>

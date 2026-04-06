@@ -2,34 +2,33 @@ import Link from "next/link";
 import { CheckCircle2, Mail } from "lucide-react";
 
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getBetaPrimaryCta } from "@/lib/beta/config";
 import { siteConfig } from "@/lib/site-config";
 
 const accessCards = [
   {
-    name: "Current workspace access",
+    name: "Individual workspace",
     description:
-      "Create an account and use the core ApplyFlow workspace for profile setup, recommendations, application materials, and tracking.",
+      "Create an account and use the current ApplyFlow workspace for profile setup, role review, tailored materials, and application tracking.",
     points: [
-      "Account creation and dashboard access",
-      "Profile building and resume import",
-      "Recommendations, search, and job tracker",
-      "Tailored application material workflows",
+      "Dashboard access",
+      "Resume import and profile setup",
+      "Recommendations, search, and tracker",
+      "Tailored resume and cover-letter workflows",
     ],
     ctaLabel: "Create account",
     ctaHref: "/register",
   },
   {
-    name: "Team and partnership planning",
+    name: "Team or partner access",
     description:
-      "If you need cohort access, advisor workflows, or a branded rollout path, contact Omnari Group directly.",
+      "If you need coaching, cohort, or partner rollout support, contact Omnari Group directly.",
     points: [
-      "Career-coach and advisor discussions",
-      "Training provider and bootcamp planning",
-      "Partner rollout and legal review",
-      "Commercial access questions",
+      "Advisor and coach workflows",
+      "Education or bootcamp discussions",
+      "Partner rollout planning",
+      "Commercial and legal queries",
     ],
     ctaLabel: "Contact Omnari",
     ctaHref: `mailto:${siteConfig.supportEmail}`,
@@ -42,15 +41,12 @@ export default function PricingPage() {
   return (
     <MarketingShell>
       <section className="container space-y-4 pt-6 text-center">
-        <Badge className="rounded-full" variant="secondary">
-          Access
-        </Badge>
         <h1 className="text-4xl font-semibold text-foreground sm:text-5xl">
-          Clear access now. Commercial details later.
+          Current access.
         </h1>
-        <p className="mx-auto max-w-2xl text-sm text-muted-foreground">
-          ApplyFlow is publicly accessible as a working product. Formal commercial packaging and
-          partner arrangements are handled directly by {siteConfig.companyName}.
+        <p className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base">
+          ApplyFlow is available as a live product. Individual access is self-serve.
+          Team, partner, and commercial discussions are handled directly by {siteConfig.companyName}.
         </p>
       </section>
 
@@ -77,20 +73,21 @@ export default function PricingPage() {
       </section>
 
       <section className="container">
-        <div className="surface-card space-y-4 p-6 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <div className="surface-card flex flex-col items-center gap-4 p-6 text-center md:p-8">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Mail className="h-5 w-5" />
           </div>
-          <h3 className="text-xl font-semibold text-foreground">Questions about access, legal terms, or rollout?</h3>
-          <p className="text-sm text-muted-foreground">
-            Use the current workspace, or contact {siteConfig.companyName} directly if you need a formal commercial path.
+          <h2 className="text-2xl font-semibold text-foreground">Need a formal access conversation?</h2>
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            Use the current workspace today, or contact {siteConfig.companyName} if you need
+            rollout support, legal review, or commercial terms.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Button asChild>
               <Link href={primaryCta.href}>{primaryCta.label}</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href={`mailto:${siteConfig.supportEmail}`}>Email {siteConfig.supportEmail}</Link>
+              <Link href={`mailto:${siteConfig.supportEmail}`}>{siteConfig.supportEmail}</Link>
             </Button>
           </div>
         </div>

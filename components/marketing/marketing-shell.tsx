@@ -16,7 +16,7 @@ import { getBetaPrimaryCta } from "@/lib/beta/config";
 import { siteConfig } from "@/lib/site-config";
 
 const navLinks = [
-  { label: "Features", href: "/#features" },
+  { label: "Product", href: "/#benefits" },
   { label: "Pricing", href: "/pricing" },
   { label: "Resources", href: "/resources" },
   { label: "Extension", href: "/browser-extension" },
@@ -35,7 +35,7 @@ export function MarketingNav() {
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">{siteConfig.name}</p>
-            <p className="text-xs text-muted-foreground">Career OS</p>
+            <p className="text-xs text-muted-foreground">{siteConfig.companyName}</p>
           </div>
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground lg:flex">
@@ -67,7 +67,7 @@ export function MarketingNav() {
             <SheetContent side="right" className="w-72">
               <SheetHeader>
                 <SheetTitle>{siteConfig.name}</SheetTitle>
-                <SheetDescription>{siteConfig.companyName} product navigation</SheetDescription>
+                <SheetDescription>{siteConfig.companyName}</SheetDescription>
               </SheetHeader>
               <div className="mt-6 space-y-4">
                 <nav className="space-y-2 text-sm">
@@ -103,21 +103,20 @@ export function MarketingFooter() {
     {
       title: "Product",
       links: [
-        { label: "Profile Builder", href: "/#features" },
-        { label: "Job Recommendations", href: "/#features" },
-        { label: "Tailored Packs", href: "/#features" },
-        { label: "Job Tracker", href: "/#benefits" },
+        { label: "Overview", href: "/#benefits" },
+        { label: "Core modules", href: "/#features" },
+        { label: "Pricing", href: "/pricing" },
         { label: "Browser Extension", href: "/browser-extension" },
-        { label: "Create account", href: "/register" },
+        { label: "Resources", href: "/resources" },
       ],
     },
     {
-      title: "Resources",
+      title: "Company",
       links: [
-        { label: "Resources", href: "/resources" },
-        { label: "Extension Setup", href: "/browser-extension" },
+        { label: "About", href: "/about" },
+        { label: "Omnari Group", href: siteConfig.companyUrl },
+        { label: "Product page", href: siteConfig.productOverviewUrl },
         { label: "Support", href: `mailto:${siteConfig.supportEmail}` },
-        { label: "Omnari product page", href: siteConfig.productOverviewUrl },
       ],
     },
     {
@@ -130,21 +129,11 @@ export function MarketingFooter() {
       ],
     },
     {
-      title: "Company",
-      links: [
-        { label: "About", href: "/about" },
-        { label: "Pricing", href: "/pricing" },
-        { label: "Omnari Group", href: siteConfig.companyUrl },
-        { label: "Contact Omnari", href: `mailto:${siteConfig.supportEmail}` },
-      ],
-    },
-    {
       title: "Access",
       links: [
         { label: "Login", href: "/login" },
         { label: "Create account", href: "/register" },
         { label: "Forgot password", href: "/forgot-password" },
-        { label: "Request access", href: "/waitlist" },
       ],
     },
   ];
@@ -163,8 +152,9 @@ export function MarketingFooter() {
             </div>
           </div>
           <p className="max-w-xl text-sm text-muted-foreground">
-            {siteConfig.name} is developed and owned by {siteConfig.companyName}. It gives candidates one workspace for
-            profile setup, matched roles, tailored materials, and structured application tracking.
+            {siteConfig.name} is developed by {siteConfig.companyName}. It combines
+            profile setup, matched roles, tailored materials, and application
+            tracking in one workspace.
           </p>
         </div>
 
