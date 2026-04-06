@@ -106,30 +106,46 @@ function resolveAdzunaCountry(location: string) {
 
 async function adzunaProvider(input: ProviderInput): Promise<ExternalJob[]> {
   if (!process.env.ADZUNA_APP_ID || !process.env.ADZUNA_APP_KEY) return [];
-  const roleQuery = input.roles.length
-    ? input.roles.filter(Boolean).slice(0, 3).join(" OR ")
-    : "Business Analyst";
+  const roleQueries = input.roles.length
+    ? input.roles.filter(Boolean).slice(0, 3)
+    : ["Business Analyst"];
   const hasRemote = input.workModes.some((mode) => mode.toLowerCase().includes("remote"));
   const preferredLocation = input.locations.find((loc) => loc && loc.trim().length > 0);
   const fallbackLocation = hasRemote ? "Remote" : "United States";
   const location = preferredLocation ?? fallbackLocation;
   const country = resolveAdzunaCountry(location || "United States");
-  const params = new URLSearchParams({
-    app_id: process.env.ADZUNA_APP_ID,
-    app_key: process.env.ADZUNA_APP_KEY,
-    what: roleQuery,
-    where: location || fallbackLocation,
-    results_per_page: "20",
-    max_days_old: "30",
-  });
+  const responses = await Promise.all(
+    roleQueries.map(async (roleQuery) => {
+      const params = new URLSearchParams({
+        app_id: process.env.ADZUNA_APP_ID!,
+        app_key: process.env.ADZUNA_APP_KEY!,
+        what: roleQuery,
+        where: location || fallbackLocation,
+        results_per_page: "20",
+        max_days_old: "30",
+      });
 
-  const res = await fetchWithTimeout(
-    `https://api.adzuna.com/v1/api/jobs/${country}/search/1?${params.toString()}`,
-    { method: "GET" },
+      const res = await fetchWithTimeout(
+        `https://api.adzuna.com/v1/api/jobs/${country}/search/1?${params.toString()}`,
+        { method: "GET" },
+      );
+      if (!res.ok) return [] as ExternalJob[];
+      const data = await res.json();
+      return (data.results || []).map(normalizeAdzuna);
+    }),
   );
-  if (!res.ok) return [];
-  const data = await res.json();
-  return (data.results || []).map(normalizeAdzuna);
+
+  const unique = new Map<string, ExternalJob>();
+  for (const jobs of responses) {
+    for (const job of jobs) {
+      const key = job.url || job.id;
+      if (!unique.has(key)) {
+        unique.set(key, job);
+      }
+    }
+  }
+
+  return Array.from(unique.values()).slice(0, 20);
 }
 
 function mockProvider(input: ProviderInput): ExternalJob[] {
