@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { trackAnalyticsEvent } from "@/lib/analytics/client";
 import { betaConfig } from "@/lib/beta/config";
 import { auth } from "@/lib/firebase/client";
+import { siteConfig } from "@/lib/site-config";
 
 const schema = z
   .object({
@@ -114,31 +115,24 @@ export default function RegisterPage() {
 
   return (
     <AuthShell
-      title={
-        betaConfig.accessMode === "waitlist"
-          ? "Request access"
-          : betaConfig.accessMode === "invite"
-            ? "Enter your invite"
-            : "Create your ApplyFlow account"
-      }
+      title={betaConfig.accessMode === "waitlist" ? "Request access" : "Create your account"}
       description={
         betaConfig.accessMode === "waitlist"
           ? "Access requests are reviewed in stages."
-          : "Build your profile, review matched roles, and track every application in one place."
+          : betaConfig.accessMode === "invite"
+            ? "Use your invite code, then finish account setup."
+            : "Set up your profile, review matched roles, and track applications in one place."
       }
       backLink={{ href: "/login", label: "Back to sign in" }}
       footer={
         <div className="flex w-full items-center justify-between text-muted-foreground">
           <div className="flex items-center gap-2 text-xs">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            Secure, ATS-friendly workflow
+            Secure account setup
           </div>
           <span>
             Already have an account?{" "}
-            <Link
-              href="/login"
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
+            <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
               Sign in
             </Link>
           </span>
@@ -164,119 +158,132 @@ export default function RegisterPage() {
             </Button>
           </div>
         ) : (
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3.5">
-            <FormField
-              control={form.control}
-              name="fullName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full name</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Full name"
-                      autoComplete="name"
-                      disabled={isSubmitting}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {betaConfig.accessMode === "invite" ? (
-              <FormField
-                control={form.control}
-                name="inviteCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Invite code</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter your invite code"
-                        autoComplete="one-time-code"
-                        disabled={isSubmitting}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ) : null}
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="work@email.com"
-                      autoComplete="email"
-                      disabled={isSubmitting}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="••••••••"
-                      autoComplete="new-password"
-                      disabled={isSubmitting}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Confirm password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="••••••••"
-                      autoComplete="new-password"
-                      disabled={isSubmitting}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isSubmitting}
-              size="lg"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating account...
-                </>
-              ) : (
-                "Create account"
-              )}
-            </Button>
-          </form>
-        </Form>
+          <>
+            <div className="rounded-xl border border-dashed border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+              {betaConfig.accessMode === "invite"
+                ? "Enter your invite code and finish account setup. Resume import and profile setup happen after sign-up."
+                : `Create your account first. Need help before you start? Email ${siteConfig.supportEmail}.`}
+            </div>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3.5">
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Full name"
+                          autoComplete="name"
+                          disabled={isSubmitting}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {betaConfig.accessMode === "invite" ? (
+                  <FormField
+                    control={form.control}
+                    name="inviteCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Invite code</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter your invite code"
+                            autoComplete="one-time-code"
+                            disabled={isSubmitting}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : null}
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="work@email.com"
+                          autoComplete="email"
+                          disabled={isSubmitting}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          autoComplete="new-password"
+                          disabled={isSubmitting}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          autoComplete="new-password"
+                          disabled={isSubmitting}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isSubmitting} size="lg">
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    "Create account"
+                  )}
+                </Button>
+                <p className="text-center text-xs text-muted-foreground">
+                  By creating an account, you agree to our{" "}
+                  <Link href="/privacy" className="underline underline-offset-4 hover:text-foreground">
+                    privacy policy
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/terms" className="underline underline-offset-4 hover:text-foreground">
+                    terms
+                  </Link>
+                  .
+                </p>
+              </form>
+            </Form>
+          </>
         )}
       </motion.div>
     </AuthShell>

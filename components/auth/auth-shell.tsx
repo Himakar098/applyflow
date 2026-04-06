@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { siteConfig } from "@/lib/site-config";
 
 type AuthShellProps = {
   title: string;
@@ -32,7 +33,11 @@ export function AuthShell({
       className="flex min-h-screen items-center justify-center bg-transparent px-4 py-10"
       role="main"
     >
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md space-y-4">
+        <Link href="/" className="mx-auto flex w-fit flex-col items-center gap-1 text-center">
+          <span className="text-sm font-semibold text-foreground">{siteConfig.name}</span>
+          <span className="text-xs text-muted-foreground">{siteConfig.companyName}</span>
+        </Link>
         {backLink ? (
           <Link
             href={backLink.href}
@@ -55,6 +60,17 @@ export function AuthShell({
           <CardContent className="space-y-4">{children}</CardContent>
           {footer ? <CardFooter className="text-sm">{footer}</CardFooter> : null}
         </Card>
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          <Link href="/privacy" className="transition hover:text-foreground">
+            Privacy
+          </Link>
+          <Link href="/terms" className="transition hover:text-foreground">
+            Terms
+          </Link>
+          <Link href={`mailto:${siteConfig.supportEmail}`} className="transition hover:text-foreground">
+            {siteConfig.supportEmail}
+          </Link>
+        </div>
       </div>
     </div>
   );

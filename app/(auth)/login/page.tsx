@@ -17,6 +17,7 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { trackAnalyticsEvent } from "@/lib/analytics/client";
 import { betaConfig, getBetaPrimaryCta } from "@/lib/beta/config";
 import { auth, googleProvider } from "@/lib/firebase/client";
+import { siteConfig } from "@/lib/site-config";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -83,45 +85,42 @@ function LoginForm() {
 
   return (
     <AuthShell
-      title="Sign in to ApplyFlow"
+      title="Sign in"
       description={
         betaConfig.accessMode === "waitlist"
-          ? "Existing users can sign in. New access requests are handled through the request form."
+          ? "Existing users can sign in. New access requests are handled separately."
           : betaConfig.accessMode === "invite"
-            ? "Existing users can sign in. New users need an invite code."
-            : "Access your profile, recommendations, application materials, and tracker."
+            ? "Existing users can sign in. New accounts still require an invite code."
+            : "Access your profile, matched roles, tailored materials, and tracker."
       }
       footer={
         <div className="flex w-full items-center justify-between text-muted-foreground">
           <div className="flex items-center gap-2 text-xs">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            Secured with Firebase Auth
+            Secure sign-in
           </div>
           <span>
             New here?{" "}
-            <Link
-              href={primaryCta.href}
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
+            <Link href={primaryCta.href} className="font-medium text-primary underline-offset-4 hover:underline">
               {primaryCta.label}
             </Link>
           </span>
         </div>
       }
-      >
-        <motion.div
+    >
+      <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
         className="space-y-4"
       >
         <div className="rounded-xl border border-dashed border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Mail className="h-4 w-4 text-primary" />
+          <div className="flex items-start gap-2">
+            <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <p>
               {betaConfig.accessMode === "open"
-                ? "Use your email or continue with Google to get started."
-                : "Use your existing email login. New access is managed separately."}
+                ? "Use email and password, or continue with Google if you prefer."
+                : `Use your existing account. Need help accessing the app? Email ${siteConfig.supportEmail}.`}
             </p>
           </div>
         </div>
@@ -132,6 +131,7 @@ function LoginForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="work@email.com"
@@ -149,6 +149,7 @@ function LoginForm() {
               name="password"
               render={({ field }) => (
                 <FormItem>
+                  <FormLabel>Password</FormLabel>
                   <FormControl>
                     <Input
                       type="password"
@@ -163,19 +164,11 @@ function LoginForm() {
               )}
             />
             <div className="flex items-center justify-end">
-              <Link
-                href="/forgot-password"
-                className="text-xs font-medium text-primary underline-offset-4 hover:underline"
-              >
+              <Link href="/forgot-password" className="text-xs font-medium text-primary underline-offset-4 hover:underline">
                 Forgot password?
               </Link>
             </div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isSubmitting}
-              size="lg"
-            >
+            <Button type="submit" className="w-full" disabled={isSubmitting} size="lg">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -195,11 +188,18 @@ function LoginForm() {
             disabled={isSubmitting || betaConfig.accessMode !== "open"}
             onClick={handleGoogle}
           >
-            {betaConfig.accessMode === "open" ? "Continue with Google" : "Google sign-in unavailable for gated access"}
+            {betaConfig.accessMode === "open" ? "Continue with Google" : "Google sign-in unavailable"}
           </Button>
           <p className="text-center text-xs text-muted-foreground">
-            By continuing, you agree to our privacy notice and acceptable use
-            policy.
+            By continuing, you agree to our{" "}
+            <Link href="/privacy" className="underline underline-offset-4 hover:text-foreground">
+              privacy policy
+            </Link>{" "}
+            and{" "}
+            <Link href="/terms" className="underline underline-offset-4 hover:text-foreground">
+              terms
+            </Link>
+            .
           </p>
         </div>
       </motion.div>

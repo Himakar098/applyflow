@@ -16,12 +16,14 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { getBetaPrimaryCta } from "@/lib/beta/config";
 import { auth } from "@/lib/firebase/client";
+import { siteConfig } from "@/lib/site-config";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -66,15 +68,20 @@ export default function ForgotPasswordPage() {
       description="We will email you a secure link to reset your password."
       backLink={{ href: "/login", label: "Back to sign in" }}
       footer={
-        <span className="text-muted-foreground">
-          Need an account?{" "}
+        <div className="flex w-full items-center justify-between text-muted-foreground">
+          <span>
+            Need an account?{" "}
+            <Link href={primaryCta.href} className="font-medium text-primary underline-offset-4 hover:underline">
+              {primaryCta.label}
+            </Link>
+          </span>
           <Link
-            href={primaryCta.href}
-            className="font-medium text-primary underline-offset-4 hover:underline"
+            href={`mailto:${siteConfig.supportEmail}`}
+            className="text-xs font-medium text-primary underline-offset-4 hover:underline"
           >
-            {primaryCta.label}
+            Contact support
           </Link>
-        </span>
+        </div>
       }
     >
       <motion.div
@@ -84,9 +91,9 @@ export default function ForgotPasswordPage() {
         className="space-y-4"
       >
         <div className="rounded-xl border border-dashed border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Mail className="h-4 w-4 text-primary" />
-            <p>Enter the email you used to sign up.</p>
+          <div className="flex items-start gap-2">
+            <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <p>Enter the email you used to sign up. If the account exists, a reset link will be sent.</p>
           </div>
         </div>
         <Form {...form}>
@@ -96,24 +103,15 @@ export default function ForgotPasswordPage() {
               name="email"
               render={({ field }) => (
                 <FormItem>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="you@email.com"
-                      autoComplete="email"
-                      disabled={isSubmitting}
-                      {...field}
-                    />
+                    <Input placeholder="you@email.com" autoComplete="email" disabled={isSubmitting} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isSubmitting}
-              size="lg"
-            >
+            <Button type="submit" className="w-full" disabled={isSubmitting} size="lg">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
