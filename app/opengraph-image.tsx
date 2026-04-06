@@ -1,5 +1,7 @@
 import { ImageResponse } from "next/og";
 
+import { siteConfig } from "@/lib/site-config";
+
 export const runtime = "edge";
 
 export const size = {
@@ -37,13 +39,13 @@ export default function Image() {
           }}
         >
           <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-0.02em" }}>
-            ApplyFlow
+            {siteConfig.name} by {siteConfig.companyName}
           </div>
           <div style={{ fontSize: 56, fontWeight: 700, lineHeight: 1.1 }}>
-            Get more job interviews, with less busywork.
+            One workspace for your entire job search.
           </div>
           <div style={{ fontSize: 26, color: "#3b5068" }}>
-            Build a living profile, discover better matches, and ship tailored applications with momentum.
+            Build your profile, review matched roles, generate tailored materials, and keep every application organized.
           </div>
         </div>
       </div>

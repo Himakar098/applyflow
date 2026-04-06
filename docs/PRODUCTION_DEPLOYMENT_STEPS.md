@@ -6,22 +6,19 @@ Last updated: March 6, 2026 (Australia/Perth)
 
 Set these exact non-secret values in production:
 
-- `NEXT_PUBLIC_SITE_URL=https://applyflow.com`
-- `NEXT_PUBLIC_SUPPORT_EMAIL=support.applyflow@gmail.com`
-- `NEXT_PUBLIC_PUBLIC_BETA=true`
-- `NEXT_PUBLIC_BETA_LABEL=Public Beta`
-- `NEXT_PUBLIC_BETA_ACCESS_MODE=waitlist`
-- `BETA_ACCESS_MODE=waitlist`
-- `BETA_REQUIRE_APPROVED_USERS=true`
+- `NEXT_PUBLIC_SITE_URL=<your-public-ApplyFlow-url>`
+- `NEXT_PUBLIC_SUPPORT_EMAIL=support@omnari.world`
+- `NEXT_PUBLIC_PUBLIC_BETA=false`
+- `NEXT_PUBLIC_BETA_LABEL=Access`
+- `NEXT_PUBLIC_BETA_ACCESS_MODE=open`
+- `BETA_ACCESS_MODE=open`
+- `BETA_REQUIRE_APPROVED_USERS=false`
 - Optional one-click extension links (set when store listings are approved):
   - `NEXT_PUBLIC_CHROME_EXTENSION_URL=<chrome-web-store-url>`
   - `NEXT_PUBLIC_EDGE_EXTENSION_URL=<edge-addons-url>`
   - `NEXT_PUBLIC_SAFARI_EXTENSION_URL=<app-store-url>`
 
-If you decide to open public signup later, switch both to:
-
-- `NEXT_PUBLIC_BETA_ACCESS_MODE=open`
-- `BETA_ACCESS_MODE=open`
+If you need paced access later, switch both access mode variables to `waitlist` or `invite`.
 
 ## 2) Set Required Secrets
 
@@ -77,7 +74,9 @@ npm run firebase:emulators
   - `/resources`
   - `/about`
   - `/browser-extension`
-  - `/waitlist`
+  - `/privacy`
+  - `/terms`
+  - `/cookies`
 - Verify auth gating behavior:
   - `/register` redirects to `/waitlist` when in waitlist mode.
   - `/api/auth/register` returns `waitlist_only` when in waitlist mode.

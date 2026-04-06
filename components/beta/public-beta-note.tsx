@@ -13,10 +13,10 @@ export function PublicBetaNote() {
       <div className="flex items-start gap-3">
         <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <div className="space-y-1">
-          <p className="font-medium text-foreground">{betaConfig.label}</p>
+          <p className="font-medium text-foreground">Supported-site note</p>
           <p>
-            ApplyFlow is live in beta. Supported-site coverage varies across employer career pages,
-            and the browser extension works best on the listed ATS families.
+            Supported-site coverage varies across employer career pages, and the browser extension
+            works best on the listed ATS families.
           </p>
           <p className="inline-flex items-center gap-1 text-xs">
             <Wrench className="h-3.5 w-3.5" />

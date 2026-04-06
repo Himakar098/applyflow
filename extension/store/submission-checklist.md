@@ -22,8 +22,8 @@
 - Listing copy finalized
 - Permissions justification ready
 - Privacy disclosure ready
-- Support email confirmed: `support.applyflow@gmail.com`
-- Privacy policy URL confirmed: `https://applyflow.com/privacy`
+- Support email confirmed: `support@omnari.world`
+- Privacy policy URL confirmed: `https://applyflow-theta.vercel.app/privacy`
 
 ## Store media
 

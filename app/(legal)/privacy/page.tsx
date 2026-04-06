@@ -3,84 +3,79 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { siteConfig } from "@/lib/site-config";
 
+const sections = [
+  {
+    title: "1. What we collect",
+    body:
+      "ApplyFlow stores the information required to run the workspace: account details, profile fields, resume uploads, saved jobs, application notes, generated application materials, and limited product analytics.",
+  },
+  {
+    title: "2. How we use the data",
+    body:
+      "Omnari Group uses this information to operate the service, personalize role recommendations, generate tailored application content, secure accounts, troubleshoot issues, and respond to support or legal requests.",
+  },
+  {
+    title: "3. Storage and service providers",
+    body:
+      "ApplyFlow currently relies on third-party infrastructure providers such as Firebase, Vercel, and related operational tooling. Data is processed only as needed to operate the product and is not sold for advertising or unrelated resale.",
+  },
+  {
+    title: "4. Career-site interactions",
+    body:
+      "When you use the Apply Assistant or browser extension, the product prepares profile and job context so you can fill employer application forms faster. You remain responsible for reviewing the employer form and deciding what to submit.",
+  },
+  {
+    title: "5. Retention and deletion",
+    body:
+      "We retain account data while your workspace remains active and for a reasonable period needed for security, compliance, backup, and support. To request deletion or correction, contact us directly.",
+  },
+  {
+    title: "6. Security",
+    body:
+      "Omnari Group uses reasonable administrative, technical, and organisational safeguards to protect the service. No online system is perfectly secure, so users should also protect their credentials and review the information they choose to store.",
+  },
+  {
+    title: "7. Contact",
+    body: `Privacy, deletion, or data-handling questions should be sent to ${siteConfig.supportEmail}.`,
+  },
+];
+
 export default function PrivacyPage() {
   return (
     <main className="container space-y-10 pb-24 pt-12">
       <div className="space-y-4">
         <Badge className="rounded-full" variant="secondary">
-          Privacy policy
+          Legal
         </Badge>
         <h1 className="text-4xl font-semibold text-foreground">Privacy Policy</h1>
-        <p className="text-sm text-muted-foreground">Effective date: February 4, 2026</p>
+        <p className="text-sm text-muted-foreground">Last updated: {siteConfig.legalLastUpdated}</p>
       </div>
 
       <section className="surface-panel space-y-6 p-8">
         <div className="space-y-3">
-          <h2 className="text-2xl font-semibold text-foreground">Overview</h2>
+          <h2 className="text-2xl font-semibold text-foreground">Scope</h2>
           <p className="text-sm text-muted-foreground">
-            ApplyFlow helps you build a profile, discover job opportunities, and create
-            tailored application materials. This policy explains what data we collect,
-            why we collect it, and how you control it.
+            This policy explains how {siteConfig.companyName} handles information collected through {siteConfig.name}.
+            It applies to the public website, account workflows, dashboard, browser-extension-assisted flows, and support requests.
           </p>
         </div>
 
-        <div className="space-y-3">
-          <h2 className="text-2xl font-semibold text-foreground">Information we collect</h2>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>Profile details you provide, including resume uploads and form entries.</li>
-            <li>Application activity such as saved jobs, statuses, and follow-up notes.</li>
-            <li>Usage signals that help us improve the experience, like feature engagement.</li>
-          </ul>
+        <div className="space-y-6">
+          {sections.map((section) => (
+            <section key={section.title} className="space-y-2">
+              <h2 className="text-xl font-semibold text-foreground">{section.title}</h2>
+              <p className="text-sm leading-relaxed text-muted-foreground">{section.body}</p>
+            </section>
+          ))}
         </div>
 
-        <div className="space-y-3">
-          <h2 className="text-2xl font-semibold text-foreground">How we use your data</h2>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>Personalize recommendations and generate tailored application materials.</li>
-            <li>Maintain your application tracker and progress reports.</li>
-            <li>Improve product reliability and support.</li>
-          </ul>
-        </div>
-
-        <div className="space-y-3">
-          <h2 className="text-2xl font-semibold text-foreground">Sharing and retention</h2>
-          <p className="text-sm text-muted-foreground">
-            We do not sell your personal information. We may share data with trusted
-            service providers that help us operate ApplyFlow, and we retain data only as
-            long as needed to provide the service.
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          <h2 className="text-2xl font-semibold text-foreground">Your choices</h2>
-          <p className="text-sm text-muted-foreground">
-            You can update your profile at any time, delete saved jobs, and control what
-            you share. To request data deletion, contact us at
-            {" "}
-            <Link
-              href={`mailto:${siteConfig.supportEmail}`}
-              className="font-semibold text-primary"
-            >
-              {siteConfig.supportEmail}
-            </Link>
-            .
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          <h2 className="text-2xl font-semibold text-foreground">Contact</h2>
-          <p className="text-sm text-muted-foreground">
-            Questions about privacy? Email
-            {" "}
-            <Link
-              href={`mailto:${siteConfig.supportEmail}`}
-              className="font-semibold text-primary"
-            >
-              {siteConfig.supportEmail}
-            </Link>
-            .
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          For privacy requests, email{" "}
+          <Link href={`mailto:${siteConfig.supportEmail}`} className="font-semibold text-primary">
+            {siteConfig.supportEmail}
+          </Link>
+          .
+        </p>
       </section>
     </main>
   );

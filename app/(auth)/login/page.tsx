@@ -11,7 +11,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { AuthShell } from "@/components/auth/auth-shell";
-import { PublicBetaNote } from "@/components/beta/public-beta-note";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -84,13 +83,13 @@ function LoginForm() {
 
   return (
     <AuthShell
-      title={betaConfig.enabled ? "Sign in to ApplyFlow beta" : "Sign in to ApplyFlow"}
+      title="Sign in to ApplyFlow"
       description={
         betaConfig.accessMode === "waitlist"
-          ? "Existing beta users can sign in. New users should join the waitlist."
+          ? "Existing users can sign in. New access requests are handled through the request form."
           : betaConfig.accessMode === "invite"
-            ? "Existing beta users can sign in. New users need an invite code."
-            : "Stay on top of your applications with an AI-first workspace."
+            ? "Existing users can sign in. New users need an invite code."
+            : "Access your profile, recommendations, application materials, and tracker."
       }
       footer={
         <div className="flex w-full items-center justify-between text-muted-foreground">
@@ -109,21 +108,20 @@ function LoginForm() {
           </span>
         </div>
       }
-    >
-      <motion.div
+      >
+        <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
         className="space-y-4"
       >
-        <PublicBetaNote />
         <div className="rounded-xl border border-dashed border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Mail className="h-4 w-4 text-primary" />
             <p>
               {betaConfig.accessMode === "open"
                 ? "Use your email or continue with Google to get started."
-                : "Use your existing email login. New beta access is managed separately."}
+                : "Use your existing email login. New access is managed separately."}
             </p>
           </div>
         </div>
@@ -197,7 +195,7 @@ function LoginForm() {
             disabled={isSubmitting || betaConfig.accessMode !== "open"}
             onClick={handleGoogle}
           >
-            {betaConfig.accessMode === "open" ? "Continue with Google" : "Google sign-in disabled in gated beta"}
+            {betaConfig.accessMode === "open" ? "Continue with Google" : "Google sign-in unavailable for gated access"}
           </Button>
           <p className="text-center text-xs text-muted-foreground">
             By continuing, you agree to our privacy notice and acceptable use

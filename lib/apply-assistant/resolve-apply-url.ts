@@ -78,7 +78,7 @@ async function resolveRedirect(url: string) {
     method: "GET",
     redirect: "follow",
     headers: {
-      "user-agent": "ApplyFlow-Apply-Assistant/1.0 (+https://applyflow.com)",
+      "user-agent": "ApplyFlow-Apply-Assistant/1.0 (+https://omnari.world/apply-flow)",
       accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     },
   });

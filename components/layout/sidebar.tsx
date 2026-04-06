@@ -32,6 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { siteConfig } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -105,13 +106,13 @@ export function Sidebar() {
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">ApplyFlow</p>
-            <p className="text-xs text-muted-foreground">Career OS</p>
+            <p className="text-xs text-muted-foreground">{siteConfig.companyName}</p>
           </div>
         </Link>
         <NavLinks />
         <div className="mt-auto space-y-3">
           <div className="rounded-xl border border-dashed border-primary/20 bg-white/70 px-3 py-3 text-xs text-muted-foreground">
-            Daily mission: polish profile, save two roles, and ship one tailored pack.
+            Need help or a legal clarification? Contact {siteConfig.supportEmail}.
           </div>
           <Button asChild className="w-full">
             <Link href="/jobs?new=1">New application</Link>
@@ -125,7 +126,7 @@ export function Sidebar() {
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">ApplyFlow</p>
-            <p className="text-xs text-muted-foreground">Career OS</p>
+            <p className="text-xs text-muted-foreground">{siteConfig.companyName}</p>
           </div>
         </div>
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -144,7 +145,7 @@ export function Sidebar() {
             <SheetHeader>
               <SheetTitle>Navigation</SheetTitle>
               <SheetDescription className="sr-only">
-                Mobile navigation drawer for ApplyFlow.
+                Mobile navigation drawer for ApplyFlow by Omnari Group.
               </SheetDescription>
             </SheetHeader>
             <div className="mt-6">

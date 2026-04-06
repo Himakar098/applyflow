@@ -37,7 +37,7 @@ export default function FeedbackPage() {
       setMessage("");
       toast({
         title: "Feedback sent",
-        description: "Thanks — this was added to the beta support queue.",
+        description: "Thanks — this was added to the product support queue.",
       });
     } catch (error) {
       const description = error instanceof Error ? error.message : "Unable to send feedback";
@@ -51,7 +51,7 @@ export default function FeedbackPage() {
     <div className="space-y-6">
       <div>
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Support</p>
-        <h2 className="text-2xl font-semibold text-foreground">Beta feedback</h2>
+        <h2 className="text-2xl font-semibold text-foreground">Product feedback</h2>
         <p className="text-sm text-muted-foreground">
           Report bugs, ask questions, or suggest improvements. We triage this queue daily.
         </p>

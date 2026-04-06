@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Menu, Sparkles } from "lucide-react";
 
-import { PublicBetaBanner } from "@/components/beta/public-beta-banner";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -47,6 +46,9 @@ export function MarketingNav() {
           ))}
         </nav>
         <div className="hidden items-center gap-3 lg:flex">
+          <Button asChild>
+            <Link href={primaryCta.href}>{primaryCta.label}</Link>
+          </Button>
           <Button asChild variant="ghost">
             <Link href="/login">Login</Link>
           </Button>
@@ -65,7 +67,7 @@ export function MarketingNav() {
             <SheetContent side="right" className="w-72">
               <SheetHeader>
                 <SheetTitle>{siteConfig.name}</SheetTitle>
-                <SheetDescription>Navigate ApplyFlow</SheetDescription>
+                <SheetDescription>{siteConfig.companyName} product navigation</SheetDescription>
               </SheetHeader>
               <div className="mt-6 space-y-4">
                 <nav className="space-y-2 text-sm">
@@ -99,42 +101,50 @@ export function MarketingNav() {
 export function MarketingFooter() {
   const footerColumns = [
     {
-      title: "Features",
+      title: "Product",
       links: [
         { label: "Profile Builder", href: "/#features" },
         { label: "Job Recommendations", href: "/#features" },
         { label: "Tailored Packs", href: "/#features" },
         { label: "Job Tracker", href: "/#benefits" },
-        { label: "Follow-ups", href: "/#benefits" },
+        { label: "Browser Extension", href: "/browser-extension" },
+        { label: "Create account", href: "/register" },
       ],
     },
     {
       title: "Resources",
       links: [
-        { label: "Job Search Playbook", href: "/resources" },
-        { label: "Resume Kit", href: "/resources" },
-        { label: "Interview Prep", href: "/resources" },
+        { label: "Resources", href: "/resources" },
         { label: "Extension Setup", href: "/browser-extension" },
-        { label: "FAQ", href: "/resources" },
+        { label: "Support", href: `mailto:${siteConfig.supportEmail}` },
+        { label: "Omnari product page", href: siteConfig.productOverviewUrl },
+      ],
+    },
+    {
+      title: "Legal",
+      links: [
+        { label: "Privacy", href: "/privacy" },
+        { label: "Terms", href: "/terms" },
+        { label: "Cookies", href: "/cookies" },
         { label: "Support", href: `mailto:${siteConfig.supportEmail}` },
       ],
     },
     {
       title: "Company",
       links: [
-        { label: "Pricing", href: "/pricing" },
         { label: "About", href: "/about" },
-        { label: "Privacy", href: "/privacy" },
-        { label: "Terms", href: "/terms" },
+        { label: "Pricing", href: "/pricing" },
+        { label: "Omnari Group", href: siteConfig.companyUrl },
+        { label: "Contact Omnari", href: `mailto:${siteConfig.supportEmail}` },
       ],
     },
     {
-      title: "Partners",
+      title: "Access",
       links: [
-        { label: "Career Coaches", href: "/about" },
-        { label: "Universities", href: "/about" },
-        { label: "Bootcamps", href: "/about" },
-        { label: "Hiring Teams", href: "/about" },
+        { label: "Login", href: "/login" },
+        { label: "Create account", href: "/register" },
+        { label: "Forgot password", href: "/forgot-password" },
+        { label: "Request access", href: "/waitlist" },
       ],
     },
   ];
@@ -149,12 +159,12 @@ export function MarketingFooter() {
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">{siteConfig.name}</p>
-              <p className="text-xs text-muted-foreground">{siteConfig.tagline}</p>
+              <p className="text-xs text-muted-foreground">{siteConfig.companyName}</p>
             </div>
           </div>
           <p className="max-w-xl text-sm text-muted-foreground">
-            Build a living profile, discover better matches, and ship tailored applications
-            with momentum.
+            {siteConfig.name} is developed and owned by {siteConfig.companyName}. It gives candidates one workspace for
+            profile setup, matched roles, tailored materials, and structured application tracking.
           </p>
         </div>
 
@@ -191,7 +201,7 @@ export function MarketingFooter() {
         </div>
 
         <div className="flex flex-col gap-2 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <p>© {new Date().getFullYear()} {siteConfig.name}. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {siteConfig.companyName}. All rights reserved.</p>
           <p>
             Contact: <Link href={`mailto:${siteConfig.supportEmail}`} className="font-semibold text-primary">{siteConfig.supportEmail}</Link>
           </p>
@@ -204,7 +214,6 @@ export function MarketingFooter() {
 export function MarketingShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative">
-      <PublicBetaBanner />
       <MarketingNav />
       <main className="space-y-24 pb-24">{children}</main>
       <MarketingFooter />

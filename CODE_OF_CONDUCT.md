@@ -30,7 +30,7 @@ Project maintainers may remove, edit, or reject comments, issues, commits, code,
 
 ## Reporting
 If you experience or witness unacceptable behavior, contact:
-- `support.applyflow@gmail.com`
+- `support@omnari.world`
 
 Please include as much context as possible. Reports will be reviewed and handled in good faith.
 

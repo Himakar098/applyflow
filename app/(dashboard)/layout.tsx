@@ -6,6 +6,7 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { Sidebar } from "@/components/layout/sidebar";
 import { UserNav } from "@/components/layout/user-nav";
 import { useAuth } from "@/lib/auth/auth-provider";
+import { siteConfig } from "@/lib/site-config";
 
 export default function DashboardLayout({
   children,
@@ -25,15 +26,15 @@ export default function DashboardLayout({
           >
             <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div className="space-y-1">
-                <div className="chip" aria-label="Current status: Career mission active">
+                <div className="chip" aria-label={`${siteConfig.companyName} product`}>
                   <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
-                  Career mission active
+                  {siteConfig.companyName} product
                 </div>
                 <h1 className="text-xl font-semibold text-foreground">
                   ApplyFlow workspace
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Build your profile, unlock matches, and move from search to offer faster.
+                  Build your profile, review matched roles, and keep your application pipeline under control.
                 </p>
               </div>
               <UserNav user={user} />

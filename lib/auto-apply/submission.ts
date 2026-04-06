@@ -84,7 +84,7 @@ export async function checkSiteReachability(
         method: "HEAD",
         redirect: "follow",
         headers: {
-          "User-Agent": "Mozilla/5.0 (ApplyFlow Job Application Bot)",
+          "User-Agent": "Mozilla/5.0 (ApplyFlow by Omnari Group)",
         },
       }),
       new Promise<never>((_, reject) =>

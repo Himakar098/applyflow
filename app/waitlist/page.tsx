@@ -44,10 +44,10 @@ export default function WaitlistPage() {
         throw new Error(data.error || "Unable to join waitlist");
       }
       setSubmitted(true);
-      toast({ title: "Added to waitlist", description: "We will reach out when capacity opens." });
+      toast({ title: "Access request received", description: "We will reach out when capacity opens." });
     } catch (error) {
       toast({
-        title: "Unable to join waitlist",
+        title: "Unable to submit access request",
         description: error instanceof Error ? error.message : "Try again later.",
         variant: "destructive",
       });
@@ -61,18 +61,17 @@ export default function WaitlistPage() {
       <section className="container grid gap-6 pt-6 lg:grid-cols-[1.1fr,0.9fr]">
         <div className="space-y-4">
           <Badge className="rounded-full" variant="secondary">
-            Public beta waitlist
+            Access requests
           </Badge>
           <h1 className="text-4xl font-semibold text-foreground sm:text-5xl">
-            Join the ApplyFlow public beta waitlist.
+            Request access to ApplyFlow.
           </h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            We are opening access in stages so support quality and recommendation quality stay high.
-            Join the waitlist and we will invite you when capacity opens.
+            If registrations are being paced, use this form and Omnari Group will follow up when access opens.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="surface-card p-5">
-              <p className="text-sm font-semibold text-foreground">Best for beta users who want</p>
+              <p className="text-sm font-semibold text-foreground">Best for users who want</p>
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
                 <li>Profile-driven recommendations</li>
                 <li>Structured job tracking</li>
@@ -80,7 +79,7 @@ export default function WaitlistPage() {
               </ul>
             </div>
             <div className="surface-card p-5">
-              <p className="text-sm font-semibold text-foreground">What beta access includes</p>
+              <p className="text-sm font-semibold text-foreground">What access includes</p>
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
                 <li>Core dashboard + recommendations</li>
                 <li>Apply Assistant workflow</li>
@@ -100,10 +99,10 @@ export default function WaitlistPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {submitted ? (
-              <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
-                <p className="text-sm font-semibold text-foreground">You are on the waitlist.</p>
+                <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                <p className="text-sm font-semibold text-foreground">Your request has been recorded.</p>
                 <p className="text-sm text-muted-foreground">
-                  We will contact you when public beta capacity opens for your cohort.
+                  We will contact you when access opens for your cohort.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <Button asChild>
@@ -142,10 +141,10 @@ export default function WaitlistPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Joining...
+                      Sending...
                     </>
                   ) : (
-                    "Join waitlist"
+                    "Request access"
                   )}
                 </Button>
               </>

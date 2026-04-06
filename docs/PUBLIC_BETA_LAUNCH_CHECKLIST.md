@@ -21,8 +21,8 @@ Last updated: March 6, 2026
 
 ## 2) Production Environment
 
-- [ ] Set `NEXT_PUBLIC_SITE_URL=https://applyflow.com`
-- [ ] Set `NEXT_PUBLIC_SUPPORT_EMAIL=support.applyflow@gmail.com`
+- [ ] Set `NEXT_PUBLIC_SITE_URL=https://applyflow-theta.vercel.app`
+- [ ] Set `NEXT_PUBLIC_SUPPORT_EMAIL=support@omnari.world`
 - [ ] Set Firebase client variables for production.
 - [ ] Set Firebase admin credentials for server routes.
 - [ ] Set `NEXT_PUBLIC_PUBLIC_BETA=true`
@@ -49,8 +49,8 @@ Last updated: March 6, 2026
   - no unsupported “one-click everywhere” promise
   - confirm extension limitations are explicit
 - [ ] Verify legal pages show:
-  - domain `https://applyflow.com`
-  - support email `support.applyflow@gmail.com`
+  - domain `https://applyflow-theta.vercel.app`
+  - support email `support@omnari.world`
 
 ## 5) Browser Extension Readiness
 

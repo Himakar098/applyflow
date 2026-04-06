@@ -114,7 +114,7 @@ npm run package:extensions
 - `firebase.json`
 - `.firebaserc`
 - browser extension permissions and store-facing files under `extension/`
-- public beta access controls and environment contract
+- access controls and environment contract
 
 Changes in those areas should be minimal, well-justified, and documented.
 

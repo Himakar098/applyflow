@@ -49,12 +49,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
-      url: `${siteConfig.url}/waitlist`,
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 0.5,
-    },
-    {
       url: `${siteConfig.url}/about`,
       lastModified,
       changeFrequency: "yearly",
@@ -68,6 +62,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${siteConfig.url}/terms`,
+      lastModified,
+      changeFrequency: "yearly",
+      priority: 0.4,
+    },
+    {
+      url: `${siteConfig.url}/cookies`,
       lastModified,
       changeFrequency: "yearly",
       priority: 0.4,

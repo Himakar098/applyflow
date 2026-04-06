@@ -5,7 +5,8 @@ import { motion } from "framer-motion";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { betaConfig, getBetaPrimaryCta } from "@/lib/beta/config";
+import { getBetaPrimaryCta } from "@/lib/beta/config";
+import { siteConfig } from "@/lib/site-config";
 
 const easeOut = [0.16, 1, 0.3, 1] as const;
 
@@ -41,7 +42,7 @@ export function LandingHero() {
         >
           <motion.div variants={item}>
             <Badge className="rounded-full" variant="secondary">
-              {betaConfig.enabled ? betaConfig.label : "ApplyFlow"}
+              {siteConfig.companyName} product
             </Badge>
           </motion.div>
           <motion.h1

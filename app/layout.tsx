@@ -26,24 +26,22 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: `${siteConfig.name} | AI-powered job application workspace`,
+    default: `${siteConfig.name} | ${siteConfig.companyName}`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
   applicationName: siteConfig.name,
   openGraph: {
-    title: `${siteConfig.name} | AI-powered job application workspace`,
-    description:
-      "Build a living profile, discover better matches, and ship tailored applications with momentum.",
+    title: `${siteConfig.name} | ${siteConfig.companyName}`,
+    description: siteConfig.description,
     url: siteConfig.url,
     siteName: siteConfig.name,
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${siteConfig.name} | AI-powered job application workspace`,
-    description:
-      "Build a living profile, discover better matches, and ship tailored applications with momentum.",
+    title: `${siteConfig.name} | ${siteConfig.companyName}`,
+    description: siteConfig.description,
   },
 };
 

@@ -31,7 +31,7 @@ export default function BrowserExtensionPage() {
         <Card className="surface-card">
           <CardHeader>
             <CardTitle>What it does</CardTitle>
-            <CardDescription>Current public-beta behavior.</CardDescription>
+            <CardDescription>Current supported behavior.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-white/60 bg-white/70 p-4">
@@ -67,7 +67,7 @@ export default function BrowserExtensionPage() {
               <ShieldCheck className="h-5 w-5 text-primary" />
               Best use cases
             </CardTitle>
-            <CardDescription>Where it helps most in beta.</CardDescription>
+            <CardDescription>Where it helps most right now.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>Company career pages using supported ATS families.</p>
@@ -168,7 +168,7 @@ export default function BrowserExtensionPage() {
         <Card className="surface-card">
           <CardHeader>
             <CardTitle>Quick use flow</CardTitle>
-            <CardDescription>The intended beta workflow once the extension is installed.</CardDescription>
+            <CardDescription>The intended workflow once the extension is installed.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-4">
             {[
@@ -190,9 +190,9 @@ export default function BrowserExtensionPage() {
         <div className="surface-panel flex flex-col items-center gap-4 px-6 py-10 text-center md:px-10">
           <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
             <Puzzle className="h-4 w-4" />
-            Public beta note
+            Product boundary
           </div>
-          <h3 className="text-2xl font-semibold text-foreground">The extension is part of the beta workflow, not a universal autopilot.</h3>
+          <h3 className="text-2xl font-semibold text-foreground">The extension is an assisted workflow, not a universal autopilot.</h3>
           <p className="max-w-2xl text-sm text-muted-foreground">
             The best current ApplyFlow experience is: build profile, review recommendations, open Apply Assistant,
             sync the extension, finish the employer form, then confirm the submission back in ApplyFlow.

@@ -33,4 +33,4 @@ The extension works with the ApplyFlow app. Context is prepared by the user insi
 
 ## Public policy URL
 
-[https://applyflow.com/privacy](https://applyflow.com/privacy)
+[https://applyflow-theta.vercel.app/privacy](https://applyflow-theta.vercel.app/privacy)

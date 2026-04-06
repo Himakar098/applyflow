@@ -45,18 +45,19 @@ const env = process.env;
 
 addCheck(
   "NEXT_PUBLIC_SITE_URL",
-  env.NEXT_PUBLIC_SITE_URL === "https://applyflow.com",
-  `expected https://applyflow.com, got ${env.NEXT_PUBLIC_SITE_URL || "<empty>"}`,
+  /^https:\/\/[^/]+/.test(env.NEXT_PUBLIC_SITE_URL || ""),
+  `set a public https URL, got ${env.NEXT_PUBLIC_SITE_URL || "<empty>"}`,
 );
 addCheck(
   "NEXT_PUBLIC_SUPPORT_EMAIL",
-  env.NEXT_PUBLIC_SUPPORT_EMAIL === "support.applyflow@gmail.com",
-  `expected support.applyflow@gmail.com, got ${env.NEXT_PUBLIC_SUPPORT_EMAIL || "<empty>"}`,
+  env.NEXT_PUBLIC_SUPPORT_EMAIL === "support@omnari.world",
+  `expected support@omnari.world, got ${env.NEXT_PUBLIC_SUPPORT_EMAIL || "<empty>"}`,
 );
 addCheck(
   "NEXT_PUBLIC_PUBLIC_BETA",
-  asBool(env.NEXT_PUBLIC_PUBLIC_BETA),
-  `expected true-like value, got ${env.NEXT_PUBLIC_PUBLIC_BETA || "<empty>"}`,
+  !asBool(env.NEXT_PUBLIC_PUBLIC_BETA),
+  `expected false-like value for public release, got ${env.NEXT_PUBLIC_PUBLIC_BETA || "<empty>"}`,
+  "warn",
 );
 
 const mode = env.BETA_ACCESS_MODE || env.NEXT_PUBLIC_BETA_ACCESS_MODE || "open";
@@ -126,7 +127,7 @@ addCheck(
   "warn",
 );
 
-console.log("ApplyFlow launch readiness check");
+console.log("ApplyFlow public-readiness check");
 console.log("--------------------------------");
 for (const check of checks) {
   const prefix = check.ok ? "PASS" : check.severity === "warn" ? "WARN" : "FAIL";

@@ -31,4 +31,4 @@ ApplyFlow is an early-stage open-source project. Support is best-effort rather t
 
 ## Contact
 General project contact:
-- `support.applyflow@gmail.com`
+- `support@omnari.world`

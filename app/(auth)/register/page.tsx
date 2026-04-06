@@ -10,7 +10,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { AuthShell } from "@/components/auth/auth-shell";
-import { PublicBetaNote } from "@/components/beta/public-beta-note";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -87,7 +86,7 @@ export default function RegisterPage() {
       await trackAnalyticsEvent("signup_completed", { method: "password" });
       toast({
         title: "Account created",
-        description: "Welcome to ApplyFlow. Let’s set up your pipeline.",
+        description: "Welcome to ApplyFlow. Let’s set up your workspace.",
       });
       router.push("/dashboard");
     } catch (error) {
@@ -117,15 +116,15 @@ export default function RegisterPage() {
     <AuthShell
       title={
         betaConfig.accessMode === "waitlist"
-          ? "ApplyFlow beta access"
+          ? "Request access"
           : betaConfig.accessMode === "invite"
-            ? "Enter your invite to join ApplyFlow"
-            : "Create your ApplyFlow beta account"
+            ? "Enter your invite"
+            : "Create your ApplyFlow account"
       }
       description={
         betaConfig.accessMode === "waitlist"
-          ? "We are opening public beta access in stages."
-          : "Organize every application, resume, and follow-up with clarity."
+          ? "Access requests are reviewed in stages."
+          : "Build your profile, review matched roles, and track every application in one place."
       }
       backLink={{ href: "/login", label: "Back to sign in" }}
       footer={
@@ -152,14 +151,13 @@ export default function RegisterPage() {
         transition={{ duration: 0.25 }}
         className="space-y-4"
       >
-        <PublicBetaNote />
         {betaConfig.accessMode === "waitlist" ? (
           <div className="space-y-3">
             <div className="rounded-xl border border-dashed border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
-              Registration is currently capped. Join the waitlist and we will invite users in waves.
+              Registration is currently capped. Request access and we will follow up when space opens.
             </div>
             <Button asChild className="w-full" size="lg">
-              <Link href="/waitlist">Join waitlist</Link>
+              <Link href="/waitlist">Request access</Link>
             </Button>
             <Button asChild variant="outline" className="w-full">
               <Link href="/browser-extension">View extension guide</Link>

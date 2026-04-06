@@ -1,11 +1,12 @@
 import type { MetadataRoute } from "next";
 
+import { siteConfig } from "@/lib/site-config";
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ApplyFlow",
-    short_name: "ApplyFlow",
-    description:
-      "AI-powered job application workspace for profile building, tailored packs, and application tracking.",
+    name: `${siteConfig.name} by ${siteConfig.companyName}`,
+    short_name: siteConfig.shortName,
+    description: siteConfig.description,
     start_url: "/",
     display: "standalone",
     background_color: "#fdf8f0",

@@ -5,6 +5,7 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getBetaPrimaryCta } from "@/lib/beta/config";
+import { siteConfig } from "@/lib/site-config";
 
 const values = [
   {
@@ -31,32 +32,31 @@ export default function AboutPage() {
     <MarketingShell>
       <section className="container space-y-4 pt-6 text-center">
         <Badge className="rounded-full" variant="secondary">
-          About ApplyFlow
+          {siteConfig.companyName}
         </Badge>
         <h1 className="text-4xl font-semibold text-foreground sm:text-5xl">
-          A career OS built for modern job seekers.
+          ApplyFlow is an Omnari Group product for structured job search work.
         </h1>
         <p className="mx-auto max-w-2xl text-sm text-muted-foreground">
-          ApplyFlow turns your resume into a living profile, helps you discover the right
-          opportunities, and keeps every application organized from first click to offer.
+          ApplyFlow gives candidates one place to build a profile, review matched roles,
+          generate tailored application materials, and keep every application organized.
         </p>
       </section>
 
       <section className="container">
         <div className="surface-panel grid gap-6 px-6 py-10 md:grid-cols-2 md:px-10">
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold text-foreground">Our mission</h2>
+            <h2 className="text-2xl font-semibold text-foreground">Why it exists</h2>
             <p className="text-sm text-muted-foreground">
-              We want to remove the chaos from job searching. ApplyFlow gives you a
-              structured workspace to build your profile, refine your story, and apply to
-              opportunities with confidence.
+              Job searching is usually fragmented across notes, resumes, browser tabs,
+              and employer forms. ApplyFlow brings those workflows into one calmer system.
             </p>
           </div>
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold text-foreground">Who it&apos;s for</h2>
+            <h2 className="text-2xl font-semibold text-foreground">Ownership and standard</h2>
             <p className="text-sm text-muted-foreground">
-              ApplyFlow is designed for early to mid-career professionals across industries
-              who want a clearer, faster path to interviews.
+              ApplyFlow is developed and owned by {siteConfig.companyName}. The product,
+              legal framework, and support path are handled under the Omnari standard.
             </p>
           </div>
         </div>
@@ -81,9 +81,9 @@ export default function AboutPage() {
 
       <section className="container">
         <div className="surface-panel flex flex-col items-center gap-4 px-6 py-10 text-center md:px-10">
-          <h3 className="text-2xl font-semibold text-foreground">Ready to build momentum?</h3>
+          <h3 className="text-2xl font-semibold text-foreground">Ready to set up your workspace?</h3>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Create your ApplyFlow workspace in minutes and start moving toward interviews.
+            Create your account, import your resume, and start working inside one structured pipeline.
           </p>
           <Button asChild>
             <Link href={primaryCta.href}>{primaryCta.label}</Link>

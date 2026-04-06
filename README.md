@@ -61,7 +61,7 @@ ApplyFlow is currently **pre-1.0**.
 ### Operational support
 - Health endpoint
 - Optional Sentry integration
-- Public beta / waitlist / invite-mode controls
+- Open access plus optional waitlist / invite-mode controls
 - Feedback capture routed into Firestore
 
 ## Tech stack
@@ -81,7 +81,7 @@ lib/                  Firebase, auth, AI, recommendations, extension, auto-apply
 extension/            Browser extension source, Safari wrapper, and store-submission assets
 scripts/              Packaging, perf smoke, launch checks, and helper scripts
 tests/                Playwright smoke tests
-docs/                 Deployment, beta-launch, and archived implementation docs
+docs/                 Deployment, launch, and archived implementation docs
 public/               Static assets and downloadable extension packages
 ```
 
@@ -155,7 +155,7 @@ Use one of these approaches:
   - `NEXT_PUBLIC_SENTRY_DSN`
   - `HEALTHCHECK_SECRET`
 
-### Optional public-beta and extension settings
+### Optional public-access and extension settings
 - `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_SUPPORT_EMAIL`
 - `NEXT_PUBLIC_PUBLIC_BETA`
@@ -271,7 +271,7 @@ It does **not** yet have broad CI coverage or a formal release cadence.
 - The app is structured for Vercel deployment.
 - Firebase must be configured for both client and admin SDK access.
 - Firebase rules and indexes are versioned in this repo and can be deployed with `npm run firebase:deploy`.
-- Public beta mode is controlled by environment variables.
+- Access mode is controlled by environment variables.
 - Browser-extension one-click install links become active once store URLs are configured.
 
 Useful docs:

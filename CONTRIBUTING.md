@@ -64,7 +64,7 @@ If your change affects extension packaging:
 npm run package:extensions
 ```
 
-If your change affects deploy or beta controls:
+If your change affects deploy or access controls:
 ```bash
 npm run launch:check
 ```

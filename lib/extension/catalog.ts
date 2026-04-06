@@ -61,16 +61,16 @@ export const browserCards: BrowserCard[] = [
     : {
         id: "chrome",
         title: "Chrome",
-        subtitle: "Manual beta install",
+        subtitle: "Manual install",
         icon: Monitor,
-        badge: "Publishing in progress",
+        badge: "Store listing pending",
         description:
-          "Use the manual beta package for now. We will switch this button to Chrome Web Store once approved.",
+          "Use the manual package for now. This card switches to Chrome Web Store when the listing is approved.",
         installLabel: "Install package",
         downloadHref: chromiumZip,
         installMode: "manual",
         steps: [
-          "Download the Chromium beta package.",
+          "Download the Chromium package.",
           "Unzip it on your machine.",
           "Open chrome://extensions and enable Developer mode.",
           "Click Load unpacked and choose the extracted folder.",
@@ -100,16 +100,16 @@ export const browserCards: BrowserCard[] = [
     : {
         id: "edge",
         title: "Edge",
-        subtitle: "Manual beta install",
+        subtitle: "Manual install",
         icon: Globe,
-        badge: "Publishing in progress",
+        badge: "Store listing pending",
         description:
-          "Use the manual beta package for now. We will switch this button to Edge Add-ons once approved.",
+          "Use the manual package for now. This card switches to Edge Add-ons when the listing is approved.",
         installLabel: "Install package",
         downloadHref: chromiumZip,
         installMode: "manual",
         steps: [
-          "Download the Chromium beta package.",
+          "Download the Chromium package.",
           "Unzip it on your machine.",
           "Open edge://extensions and enable Developer mode.",
           "Click Load unpacked and choose the extracted folder.",

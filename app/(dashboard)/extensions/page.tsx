@@ -121,7 +121,7 @@ export default function ExtensionsPage() {
         <Card className="surface-card">
           <CardHeader>
             <CardTitle>What the extension does</CardTitle>
-            <CardDescription>Current beta behavior inside the supported apply flow.</CardDescription>
+            <CardDescription>Current supported behavior inside the apply flow.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-white/60 bg-white/70 p-4">
@@ -163,7 +163,7 @@ export default function ExtensionsPage() {
               <ShieldCheck className="h-5 w-5 text-primary" />
               Current limits
             </CardTitle>
-            <CardDescription>Important boundaries in the current beta.</CardDescription>
+            <CardDescription>Important boundaries in the current release.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>File upload fields still need manual selection because browsers block silent file attachment.</p>

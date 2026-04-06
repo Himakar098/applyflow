@@ -49,12 +49,12 @@ Productivity
 
 ## Homepage
 
-[https://applyflow.com](https://applyflow.com)
+[https://omnari.world/apply-flow](https://omnari.world/apply-flow)
 
 ## Support
 
-[mailto:support.applyflow@gmail.com](mailto:support.applyflow@gmail.com)
+[mailto:support@omnari.world](mailto:support@omnari.world)
 
 ## Privacy policy
 
-[https://applyflow.com/privacy](https://applyflow.com/privacy)
+[https://applyflow-theta.vercel.app/privacy](https://applyflow-theta.vercel.app/privacy)

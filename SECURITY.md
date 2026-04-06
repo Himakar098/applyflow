@@ -11,7 +11,7 @@ Older snapshots and pre-release branches should be treated as unsupported unless
 Please do **not** open a public GitHub issue for security-sensitive reports.
 
 Instead, report security issues privately to:
-- `support.applyflow@gmail.com`
+- `support@omnari.world`
 
 Include:
 - affected area or file(s)
