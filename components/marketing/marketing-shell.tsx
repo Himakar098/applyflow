@@ -215,7 +215,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative">
       <MarketingNav />
-      <main className="space-y-24 pb-24">{children}</main>
+      <main className="space-y-16 pb-20 md:space-y-20 md:pb-24">{children}</main>
       <MarketingFooter />
     </div>
   );
