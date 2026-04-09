@@ -9,6 +9,22 @@ import { normalizeProfile } from "@/lib/profile/normalize";
 
 export const runtime = "nodejs";
 
+function stripUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => stripUndefined(item)) as T;
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, entry]) => entry !== undefined)
+        .map(([key, entry]) => [key, stripUndefined(entry)]),
+    ) as T;
+  }
+
+  return value;
+}
+
 function handleError(error: unknown, digest: string) {
   if (error instanceof HttpError) {
     return NextResponse.json(
@@ -41,6 +57,7 @@ export async function POST(req: NextRequest) {
     if (!normalizedProfile.email && decoded?.email) {
       normalizedProfile.email = decoded.email;
     }
+    const persistedProfile = stripUndefined(normalizedProfile);
 
     const userRef = adminDb.collection("users").doc(uid);
     await userRef.set(
@@ -53,13 +70,13 @@ export async function POST(req: NextRequest) {
 
     await userRef.collection("profile").doc("current").set(
       {
-        profileJson: normalizedProfile,
+        profileJson: persistedProfile,
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
     );
 
-    return NextResponse.json({ ok: true, profileJson: normalizedProfile, digest });
+    return NextResponse.json({ ok: true, profileJson: persistedProfile, digest });
   } catch (error) {
     return handleError(error, digest);
   }
