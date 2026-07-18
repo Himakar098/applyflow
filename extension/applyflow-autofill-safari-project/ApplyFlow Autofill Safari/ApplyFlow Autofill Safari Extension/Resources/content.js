@@ -363,42 +363,6 @@ function fillBySelectorList(selectors, value, filledControls) {
   return count;
 }
 
-function getActionLabel(control) {
-  if (!(control instanceof Element)) return "";
-  if (control instanceof HTMLInputElement) {
-    return normalize(control.value || control.getAttribute("aria-label") || control.getAttribute("title"));
-  }
-  return normalize(
-    control.textContent ||
-      control.getAttribute("aria-label") ||
-      control.getAttribute("title") ||
-      control.getAttribute("data-automation-id"),
-  );
-}
-
-function findSubmitButton() {
-  const directMatch = Array.from(document.querySelectorAll('button[type="submit"], input[type="submit"]')).find(
-    (control) =>
-      isVisible(control) &&
-      !(control instanceof HTMLButtonElement && control.disabled) &&
-      !(control instanceof HTMLInputElement && control.disabled),
-  );
-  if (directMatch) return directMatch;
-
-  const actionLabels = ["submit", "apply", "send application", "submit application", "complete application"];
-  const candidates = Array.from(document.querySelectorAll('button, input[type="button"], [role="button"]'));
-
-  return (
-    candidates.find((control) => {
-      if (!isVisible(control)) return false;
-      if (control instanceof HTMLButtonElement && control.disabled) return false;
-      if (control instanceof HTMLInputElement && control.disabled) return false;
-      const label = getActionLabel(control);
-      return actionLabels.some((actionLabel) => label.includes(actionLabel));
-    }) ?? null
-  );
-}
-
 function splitFullName(fullName) {
   const tokens = trimString(fullName).split(/\s+/).filter(Boolean);
   if (!tokens.length) return { firstName: "", lastName: "" };
@@ -1143,8 +1107,8 @@ function startHeldAutofillSession(payload, blockState) {
       const totalFilled = (result.formsFilled?.basicInfo ?? 0) + (result.formsFilled?.answers ?? 0);
       const followUp =
         result.fileUploadRequired
-          ? ` Autofill resumed. ${totalFilled} fields filled. Upload the required files, then review and submit.`
-          : ` Autofill resumed. ${totalFilled} fields filled. Review the form and submit when ready.`;
+          ? ` Autofill resumed. ${totalFilled} fields filled. Upload the required files, review every field, then submit it yourself.`
+          : ` Autofill resumed. ${totalFilled} fields filled. Review every field, then submit it yourself.`;
       showAssistBanner(followUp.trim(), "success");
       clearAssistBanner(9000);
       return;
@@ -1171,14 +1135,13 @@ function startHeldAutofillSession(payload, blockState) {
 }
 
 /**
- * Auto-apply flow: Check if we should auto-apply, then autofill and potentially submit
+ * Assisted apply flow: detect blockers, autofill, and stop for manual review.
  */
 function runAutoApplyFlow(payload) {
-  const { autoApplyConfig = {}, autoSubmit = false } = payload;
+  const { autoApplyConfig = {} } = payload;
 
   // Step 1: Detect form structure and challenges
   const blockingState = detectBlockingState();
-  const challenges = blockingState.challenges;
   const fileInputs = detectFileInputs();
 
   if (blockingState.blocked) {
@@ -1228,41 +1191,13 @@ function runAutoApplyFlow(payload) {
         filesToUpload: fileInputs,
         message:
           "Required files still need to be uploaded: " +
-          fileInputs.map((file) => file.documentType || file.type).join(", "),
+          fileInputs.map((file) => file.documentType || file.type).join(", ") +
+          ". Review every field and submit the application yourself.",
       };
     }
   }
 
-  // Step 4: If auto-submit enabled and no challenges, submit form
-  if (autoSubmit && !challenges.captcha && !challenges.mfa) {
-    const submitButton = findSubmitButton();
-
-    if (submitButton && isVisible(submitButton)) {
-      try {
-        submitButton.click();
-        clearHeldAutofillSession();
-        showAssistBanner("ApplyFlow submitted the form automatically.", "success");
-        clearAssistBanner(7000);
-        return {
-          success: true,
-          status: "submitted",
-          holdActive: false,
-          message: "Form auto-submitted successfully",
-        };
-      } catch {
-        return {
-          success: false,
-          status: "manual_action_needed",
-          holdActive: false,
-          reason: "Could not auto-submit form",
-          taskType: "form_review",
-          message: "Please review and submit the form manually",
-        };
-      }
-    }
-  }
-
-  // Default: Form filled, awaiting manual submission
+  // Final submission is never performed by the extension.
   return {
     success: true,
     status: "pending_manual_action",
@@ -1270,8 +1205,8 @@ function runAutoApplyFlow(payload) {
     formFilled: true,
     message:
       fileInputs.length > 0
-        ? "Form pre-filled. Upload the required files, then review and submit."
-        : "Form pre-filled. Please review and submit.",
+        ? "Form pre-filled. Upload the required files, review every field, then submit it yourself."
+        : "Form pre-filled. Review every field, then submit it yourself. ApplyFlow will not click the final button.",
     filesToUpload: fileInputs,
   };
 }

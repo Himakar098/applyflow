@@ -48,8 +48,8 @@ export interface ManualTask {
   maxRetries: number;
   lastRetryAt?: string;
 
-  // Auto-completion
-  autoSubmitAfterCompletion: boolean; // If true, auto-submit the form when user marks as complete
+  // Retained for legacy stored records. New tasks always keep final submission manual.
+  autoSubmitAfterCompletion: false;
 }
 
 export interface ManualTaskInput {
@@ -62,7 +62,6 @@ export interface ManualTaskInput {
   company: string;
   applicationUrl: string;
   instructions?: string;
-  autoSubmitAfterCompletion?: boolean;
   maxRetries?: number;
 }
 
@@ -95,7 +94,7 @@ export function createManualTask(
     notified: false,
     retryCount: 0,
     maxRetries: taskInput.maxRetries || 3,
-    autoSubmitAfterCompletion: taskInput.autoSubmitAfterCompletion ?? true,
+    autoSubmitAfterCompletion: false,
   };
 }
 
@@ -115,7 +114,7 @@ export const TASK_INSTRUCTIONS: Record<ManualTaskType, string> = {
   custom_question:
     "The company is asking a custom question that requires your input. Please answer the question thoughtfully and naturally.",
   form_review:
-    "The form couldn't be automatically filled. Please review the form, fill in any missing fields manually, and submit the application.",
+    "Review the form, fill in any missing fields manually, and submit it yourself. ApplyFlow never presses the final Submit, Apply, or Confirm button.",
   payment_info:
     "The application requires payment or billing information. This might be an application fee or premium job posting. Please provide the requested information to continue.",
 };

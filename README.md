@@ -1,6 +1,6 @@
 # ApplyFlow
 
-ApplyFlow is an early-stage open-source job search workspace built with Next.js, Firebase, and TypeScript. It brings together profile building, resume handling, job search, recommendations, application tracking, tailored application materials, and an assisted employer-site apply flow backed by a browser extension.
+ApplyFlow is an early-stage open-source job search workspace built with Next.js, Firebase, and TypeScript. It brings together profile building, resume handling, job search, recommendations, application tracking, tailored application materials, and a supervised employer-site apply flow.
 
 This repository is best understood as a real product codebase that is still maturing in public. Core flows exist and the project is actively shaped, but it is not yet a polished universal auto-apply system or a long-established OSS project.
 
@@ -15,6 +15,7 @@ Most job searches still sprawl across resumes, notes, spreadsheets, job boards, 
 - Track applications and status changes in a job workspace.
 - Generate tailored resume, cover-letter, and bullet content.
 - Assist with employer-site applications through a browser extension for supported portals.
+- Run a supervised Job Agent that imports roles, applies deterministic eligibility rules, scores fit transparently, creates grounded DOCX/PDF drafts, and coordinates a visible Playwright browser with separate autofill and submission approvals.
 - Collect in-app feedback and basic operational telemetry.
 
 ## Who it is for
@@ -91,10 +92,12 @@ Use the docs in this order:
 - `CONTRIBUTING.md` for contribution workflow
 - `SUPPORT.md` and `SECURITY.md` for issue handling
 - `docs/FIREBASE_EMULATORS.md` for local Firebase emulator and seed-data workflow
+- `docs/job-agent/USER_GUIDE.md` for the supervised Job Agent workflow
+- `docs/job-agent/SECURITY.md` for truth, privacy, and approval invariants
 - `docs/README.md` for the rest of the documentation map
 
 ## Requirements
-- Node.js 20+
+- Node.js 22+
 - npm
 - A Firebase project with Auth, Firestore, and Storage enabled
 - Optional external API keys depending on which features you want to exercise
@@ -208,6 +211,10 @@ After `npm run dev`, the most useful routes to exercise are:
 - `/search`
 - `/recommendations`
 - `/jobs`
+- `/jobs/new`
+- `/job-agent`
+- `/applications`
+- `/audit`
 - `/jobs/[jobId]/apply-assistant`
 - `/extensions`
 
@@ -215,12 +222,33 @@ After `npm run dev`, the most useful routes to exercise are:
 Use the exact commands below.
 
 ### Lint
+
 ```bash
 npm run lint
 ```
-Current state: passes with warnings, no lint errors.
+
+### Typecheck
+
+```bash
+npm run typecheck
+```
+
+### Unit and browser-bridge tests
+
+```bash
+npm run browser:install
+npm run test
+npm run test:integration
+```
+
+### Deterministic Job Agent evals
+
+```bash
+npm run eval
+```
 
 ### Build
+
 ```bash
 npm run build
 ```
@@ -263,9 +291,9 @@ This repository now includes:
 - standard OSS support files
 - issue and PR templates
 - draft release notes and changelog discipline
-- a lightweight GitHub Actions workflow for `lint` and `build`
+- a GitHub Actions workflow for Firebase config validation, lint, typecheck, tests, deterministic evals, and build
 
-It does **not** yet have broad CI coverage or a formal release cadence.
+It does **not** yet have a formal release cadence.
 
 ## Deployment notes
 - The app is structured for Vercel deployment.

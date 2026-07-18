@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { HttpError, verifyIdToken } from "@/lib/auth/verify-id-token";
+import { z } from "zod";
+
 import { adminDb } from "@/lib/firebase/admin";
 import { Timestamp } from "firebase-admin/firestore";
 import type { QueueItem } from "@/lib/auto-apply/queue";
@@ -11,23 +12,35 @@ import {
   checkSiteReachability,
   createSubmissionAttempt,
 } from "@/lib/auto-apply/submission";
+import { HttpError } from "@/lib/http-error";
+import {
+  jobAgentJson,
+  withJobAgentRoute,
+} from "@/lib/job-agent/server/http";
+import { readLimitedJson } from "@/lib/security/job-agent-request";
+import { isCredentialFreeHttpUrl } from "@/lib/security/url-policy";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes timeout for Cloud Functions
 
-interface ProcessQueueRequest {
-  queueId?: string;
-  immediate?: boolean;
-}
-
-function handleError(error: unknown, scope: string) {
-  if (error instanceof HttpError) {
-    return NextResponse.json({ error: error.message }, { status: error.status });
+const PROCESS_BODY_LIMIT_BYTES = 4 * 1024;
+const processQueueRequestSchema = z.object({
+  queueId: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120)
+    .regex(/^[A-Za-z0-9_-]+$/, "queueId contains unsupported characters")
+    .optional(),
+  immediate: z.boolean().optional().default(false),
+}).strict().superRefine((value, context) => {
+  if (!value.queueId && value.immediate !== true) {
+    context.addIssue({
+      code: "custom",
+      message: "queueId or immediate=true is required",
+    });
   }
-
-  console.error(scope, error);
-  return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-}
+});
 
 /**
  * POST /api/auto-apply/process
@@ -35,17 +48,10 @@ function handleError(error: unknown, scope: string) {
  * Can be called manually or by Cloud Scheduler
  */
 export async function POST(request: NextRequest) {
-  try {
-    const { uid } = await verifyIdToken(request);
-
-    const { queueId, immediate = false } = (await request.json()) as ProcessQueueRequest;
-
-    if (!queueId && !immediate) {
-      return NextResponse.json(
-        { error: "Missing queueId or immediate flag" },
-        { status: 400 }
-      );
-    }
+  return withJobAgentRoute(request, async ({ uid, digest }) => {
+    const { queueId } = processQueueRequestSchema.parse(
+      await readLimitedJson(request, PROCESS_BODY_LIMIT_BYTES),
+    );
 
     // Get user's auto-apply config
     const configDoc = await adminDb
@@ -56,24 +62,24 @@ export async function POST(request: NextRequest) {
     const config = configDoc.data() as AutoApplyConfig | undefined;
 
     if (!config?.enabled) {
-      return NextResponse.json(
-        { error: "Auto-apply is disabled for this user" },
-        { status: 400 }
-      );
+      throw new HttpError(400, "Auto-apply is disabled for this user");
     }
 
     if (queueId) {
       // Process specific queue item
       const result = await processSpecificQueueItem(uid, queueId, config);
-      return NextResponse.json(result, { status: 200 });
+      return jobAgentJson({ ...result, digest });
     } else {
       // Process next pending item
       const result = await processNextQueueItem(uid, config);
-      return NextResponse.json(result, { status: 200 });
+      return jobAgentJson({ ...result, digest });
     }
-  } catch (error) {
-    return handleError(error, "Error processing queue:");
-  }
+  }, {
+    mutation: true,
+    limit: 10,
+    windowMs: 60_000,
+    rateKey: "legacy-auto-apply-process",
+  });
 }
 
 /**
@@ -81,9 +87,7 @@ export async function POST(request: NextRequest) {
  * Get queue stats and status
  */
 export async function GET(request: NextRequest) {
-  try {
-    const { uid } = await verifyIdToken(request);
-
+  return withJobAgentRoute(request, async ({ uid, digest }) => {
     // Get queue stats
     const queueSnapshot = await adminDb
       .collection(`users/${uid}/auto-apply-queue`)
@@ -101,12 +105,15 @@ export async function GET(request: NextRequest) {
         success: true,
         stats,
         queueItems: queueItems.slice(0, 10), // Last 10 items
+        digest,
       },
       { status: 200 }
     );
-  } catch (error) {
-    return handleError(error, "Error getting queue status:");
-  }
+  }, {
+    limit: 60,
+    windowMs: 60_000,
+    rateKey: "legacy-auto-apply-status",
+  });
 }
 
 /**
@@ -177,11 +184,13 @@ async function processQueueItemWithLogic(
   });
 
   try {
-    // Pre-flight checks
-    const siteCheck = await checkSiteReachability(item.jobUrl);
-    if (!siteCheck.siteReachable) {
-      throw new Error("Job site is not reachable");
+    if (item.jobUrl.length > 2_000 || !isCredentialFreeHttpUrl(item.jobUrl)) {
+      throw new Error("Job URL is invalid or unsafe");
     }
+
+    // Record that the legacy server deliberately did not probe the employer.
+    // The supervised browser performs the real portal inspection instead.
+    const siteCheck = await checkSiteReachability(item.jobUrl);
 
     // Prepare submission attempt
     const submissionAttempt = createSubmissionAttempt(

@@ -351,7 +351,7 @@ export default function ApplyAssistantPage({ params }: { params: { jobId: string
     void syncContextToExtension(false);
   }, [extensionContext, extensionContextKey, extensionStatus, syncContextToExtension]);
 
-  const submitFromAssistant = async () => {
+  const markApplicationAsApplied = async () => {
     if (!job?.id) return;
     setSubmitting(true);
     try {
@@ -387,8 +387,8 @@ export default function ApplyAssistantPage({ params }: { params: { jobId: string
       });
       router.push(`/jobs/${job.id}`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to finalize submission";
-      toast({ title: "Submit confirmation failed", description: message, variant: "destructive" });
+      const message = error instanceof Error ? error.message : "Unable to record the application outcome";
+      toast({ title: "Could not mark application as applied", description: message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -654,7 +654,9 @@ export default function ApplyAssistantPage({ params }: { params: { jobId: string
                 <ShieldCheck className="h-5 w-5 text-primary" />
                 Final confirmation
               </CardTitle>
-              <CardDescription>ApplyFlow does not auto-submit without your explicit confirmation.</CardDescription>
+              <CardDescription>
+                The extension stops before final submission. Submit on the employer site, then record the confirmed outcome here.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <label className="flex items-start gap-2">
@@ -682,11 +684,11 @@ export default function ApplyAssistantPage({ params }: { params: { jobId: string
                   checked={confirmSubmit}
                   onChange={(event) => setConfirmSubmit(event.target.checked)}
                 />
-                I have submitted (or I am submitting now) this application.
+                The employer site confirmed that my application was submitted.
               </label>
               <div className="flex flex-wrap gap-2 pt-1">
                 <Button
-                  onClick={() => void submitFromAssistant()}
+                  onClick={() => void markApplicationAsApplied()}
                   disabled={!confirmReview || !confirmQuestions || !confirmSubmit || submitting}
                 >
                   {submitting ? (

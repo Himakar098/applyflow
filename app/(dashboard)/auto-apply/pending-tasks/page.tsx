@@ -77,7 +77,11 @@ export default function PendingTasksPage() {
     }
   }, [fetchTasks, user?.uid]);
 
-  const handleTaskComplete = async (taskId: string, queueId: string, submitted: boolean) => {
+  const handleTaskComplete = async (
+    taskId: string,
+    queueId: string,
+    userConfirmedSubmitted: boolean,
+  ) => {
     if (!user?.uid) return;
 
     setSubmittingTask(taskId);
@@ -92,7 +96,7 @@ export default function PendingTasksPage() {
         body: JSON.stringify({
           taskId,
           queueId,
-          submitted,
+          submitted: userConfirmedSubmitted,
         }),
       });
 
@@ -130,7 +134,7 @@ export default function PendingTasksPage() {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Pending Tasks</h1>
         <p className="text-gray-600">
-          Complete these tasks to finish your job applications
+          Finish these steps yourself, then record what happened
         </p>
       </div>
 
@@ -188,8 +192,8 @@ export default function PendingTasksPage() {
           <CardContent>
             <p className="text-gray-600 mb-4">No pending tasks</p>
             <p className="text-sm text-gray-500">
-              When you enable auto-apply, any applications requiring manual
-              input will appear here
+              When assisted preparation finds a step requiring your input, it
+              will appear here
             </p>
           </CardContent>
         </Card>
@@ -261,7 +265,7 @@ export default function PendingTasksPage() {
                           >
                             {submittingTask === task.id
                               ? "Saving..."
-                              : "Need More Time"}
+                              : "Not Submitted Yet"}
                           </Button>
 
                           <Button
@@ -274,7 +278,7 @@ export default function PendingTasksPage() {
                           >
                             {submittingTask === task.id
                               ? "Saving..."
-                              : "Task Complete"}
+                              : "I Submitted It"}
                           </Button>
                         </div>
                       </div>
@@ -312,8 +316,8 @@ export default function PendingTasksPage() {
           </p>
           <p>
             <strong>Form Review:</strong> Review the pre-filled form, make any
-            corrections, then submit. Only click &quot;Task Complete&quot; after the
-            employer site confirms the application.
+            corrections, then submit it yourself. Only click &quot;I Submitted It&quot;
+            after the employer site confirms the application.
           </p>
         </CardContent>
       </Card>

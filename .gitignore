@@ -14,10 +14,19 @@
 /coverage
 /playwright-report/
 /test-results/
+/output/playwright/
 
 # next.js
 /.next/
 /out/
+
+# local Job Agent browser sessions and private generated artifacts
+/.local/job-agent-browser/
+/storage/generated/applications/
+
+# evaluation output (keep only the placeholder)
+/evals/results/*
+!/evals/results/.gitignore
 
 # production
 /build

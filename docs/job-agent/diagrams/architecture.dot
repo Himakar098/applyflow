@@ -1,0 +1,27 @@
+digraph JobAgentArchitecture {
+  graph [bgcolor="white", rankdir=LR, pad=0.3, nodesep=0.45, ranksep=0.65];
+  node [shape=box, style="rounded,filled", fontname="Arial", fontsize=11, color="#b8c7d9", fillcolor="#f7fafc", fontcolor="#17324d", margin="0.18,0.12"];
+  edge [color="#5f7892", penwidth=1.4, arrowsize=0.75, fontname="Arial", fontsize=9, fontcolor="#425b73"];
+
+  user [label="User review\nand approvals", fillcolor="#e8f7ef", color="#69a985"];
+  ui [label="Next.js Job Agent UI\nFirebase Auth"];
+  api [label="Authenticated route handlers\nZod + origin + size limits"];
+  domain [label="Deterministic domain\nEligibility | Fit | Truth | State"];
+  openai [label="OpenAI Responses API\nStructured outputs", fillcolor="#f3ecff", color="#9b83c6"];
+  firestore [label="Firestore Admin SDK\nOwner-scoped records", fillcolor="#fff6df", color="#d3a74c"];
+  storage [label="Firebase Storage\nGenerated documents", fillcolor="#fff6df", color="#d3a74c"];
+  worker [label="Local Playwright bridge\nVisible persistent Chromium", fillcolor="#eaf3ff", color="#6a95c7"];
+  portal [label="Employer/mock portal\nNever bypass challenges"];
+
+  user -> ui [label="select/review"];
+  ui -> api [label="Bearer token"];
+  api -> domain;
+  domain -> openai [label="recommend/write only", dir=both];
+  api -> firestore [dir=both];
+  api -> storage [dir=both];
+  ui -> worker [label="explicit start"];
+  worker -> portal [label="inspect/fill"];
+  worker -> api [label="events/plan hash"];
+  user -> portal [label="manual challenge\nand final review"];
+}
+

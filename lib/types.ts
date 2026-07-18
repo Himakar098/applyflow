@@ -21,7 +21,7 @@ export type AutoApplyMetadata = {
   recommendationId: string;
   submittedAt: string;
   queueId: string;
-  method: "auto_submit" | "auto_fill_manual_submit";
+  method: "auto_fill_manual_submit";
   filledForms?: string[];
   manualTasksPending?: string[]; // Task IDs
 };

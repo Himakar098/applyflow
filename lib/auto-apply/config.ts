@@ -4,6 +4,7 @@
  */
 
 export type WorkMode = "remote" | "hybrid" | "on-site" | "flexible";
+export type SubmissionMode = "review_before_submit";
 
 export interface AutoApplyFilters {
   // Score-based filtering
@@ -44,7 +45,7 @@ export interface AutoApplyConfig {
   // Application behavior
   maxApplicationsPerDay: number; // 1-50
   maxApplicationsPerWeek?: number;
-  autoSubmit: boolean; // Auto-submit forms or just auto-fill?
+  submissionMode: SubmissionMode;
 
   // File handling
   attachResume: boolean; // Auto-attach resume?
@@ -62,7 +63,6 @@ export interface AutoApplyConfig {
   respectRobotsTxt?: boolean; // Honor robots.txt (be respectful)
   delays?: {
     betweenApplications?: number; // Milliseconds between applications
-    beforeSubmit?: number; // Milliseconds before auto-submit
   };
 
   // Metadata
@@ -83,7 +83,7 @@ export const DEFAULT_AUTO_APPLY_CONFIG: AutoApplyConfig = {
     excludeCompanies: [],
   },
   maxApplicationsPerDay: 5,
-  autoSubmit: false, // Conservative: don't auto-submit by default
+  submissionMode: "review_before_submit",
   attachResume: true,
   attachCoverLetter: false,
   notifyOnTasksPending: true,
@@ -94,7 +94,6 @@ export const DEFAULT_AUTO_APPLY_CONFIG: AutoApplyConfig = {
   respectRobotsTxt: true,
   delays: {
     betweenApplications: 5000, // 5 seconds between applications
-    beforeSubmit: 2000, // 2 seconds before auto-submit
   },
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),

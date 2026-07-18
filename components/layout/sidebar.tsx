@@ -4,7 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bot,
   Briefcase,
+  ClipboardList,
   Files,
   LayoutDashboard,
   MessageSquareWarning,
@@ -12,6 +14,7 @@ import {
   MoreHorizontal,
   Puzzle,
   Search,
+  ScrollText,
   Settings,
   Sparkles,
   Target,
@@ -37,27 +40,33 @@ import { cn } from "@/lib/utils";
 
 const links = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Job Agent", href: "/job-agent", icon: Bot },
+  { label: "Applications", href: "/applications", icon: ClipboardList },
   { label: "Resume Manager", href: "/resume", icon: Files },
   { label: "Job Tracker", href: "/jobs", icon: Briefcase },
   { label: "Recommendations", href: "/recommendations", icon: Target },
   { label: "Search", href: "/search", icon: Search },
   { label: "Extensions", href: "/extensions", icon: Puzzle },
   { label: "Feedback", href: "/feedback", icon: MessageSquareWarning },
+  { label: "Audit log", href: "/audit", icon: ScrollText },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
 const primaryMobileLinks = [
   { label: "Home", href: "/dashboard", icon: LayoutDashboard },
   { label: "Jobs", href: "/jobs", icon: Briefcase },
-  { label: "Resumes", href: "/resume", icon: Files },
-  { label: "Search", href: "/search", icon: Search },
+  { label: "Agent", href: "/job-agent", icon: Bot },
+  { label: "Applications", href: "/applications", icon: ClipboardList },
   { label: "More", href: "#more", icon: MoreHorizontal },
 ];
 
 const secondaryMobileLinks = [
+  { label: "Resume Manager", href: "/resume", icon: Files },
+  { label: "Search", href: "/search", icon: Search },
   { label: "Recommendations", href: "/recommendations", icon: Target },
   { label: "Extensions", href: "/extensions", icon: Puzzle },
   { label: "Feedback", href: "/feedback", icon: MessageSquareWarning },
+  { label: "Audit log", href: "/audit", icon: ScrollText },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -115,7 +124,7 @@ export function Sidebar() {
             Need help or a legal clarification? Contact {siteConfig.supportEmail}.
           </div>
           <Button asChild className="w-full">
-            <Link href="/jobs?new=1">New application</Link>
+            <Link href="/jobs/new">Import a job</Link>
           </Button>
         </div>
       </aside>
@@ -151,8 +160,8 @@ export function Sidebar() {
             <div className="mt-6">
               <NavLinks onSelect={() => setMobileMenuOpen(false)} />
               <Button asChild className="mt-6 w-full">
-                <Link href="/jobs?new=1" onClick={() => setMobileMenuOpen(false)}>
-                  New application
+                <Link href="/jobs/new" onClick={() => setMobileMenuOpen(false)}>
+                  Import a job
                 </Link>
               </Button>
             </div>

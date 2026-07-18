@@ -1,0 +1,35 @@
+digraph JobAgentInteraction {
+  graph [bgcolor="white", rankdir=TB, pad=0.25, nodesep=0.28, ranksep=0.35];
+  node [shape=box, style="rounded,filled", fontname="Arial", fontsize=10.5, color="#b8c7d9", fillcolor="#f7fafc", fontcolor="#17324d", margin="0.2,0.1"];
+  edge [color="#5f7892", penwidth=1.35, arrowsize=0.7, fontname="Arial", fontsize=9];
+
+  profile [label="Create claim-aware profile"];
+  import [label="Paste, CSV, browser capture,\nor public URL import"];
+  gate [label="Deterministic eligibility gate"];
+  decision [shape=diamond, label="Eligible?", fillcolor="#fff6df", color="#d3a74c"];
+  score [label="Transparent weighted fit score"];
+  docs [label="Grounded resume, cover letter,\ncriteria, and answer plan"];
+  inspect [label="Open visible Chromium\nand inspect fields"];
+  autofillApproval [shape=diamond, label="User starts\nautofill?", fillcolor="#e8f7ef", color="#69a985"];
+  fill [label="Fill approved non-sensitive fields"];
+  challenge [shape=diamond, label="Challenge or\nunknown field?", fillcolor="#fff6df", color="#d3a74c"];
+  pause [label="Pause for user input"];
+  ready [label="READY_TO_SUBMIT\nNo submit click"];
+  submitApproval [shape=diamond, label="Single-use approval\nfor current plan?", fillcolor="#e8f7ef", color="#69a985"];
+  submit [label="Submit once and record receipt"];
+  stop [label="Stop / review / ineligible", fillcolor="#fdecec", color="#cf7777"];
+
+  profile -> import -> gate -> decision;
+  decision -> stop [label="No / needs review"];
+  decision -> score [label="Yes"];
+  score -> docs -> inspect -> autofillApproval;
+  autofillApproval -> stop [label="No"];
+  autofillApproval -> fill [label="Yes"];
+  fill -> challenge;
+  challenge -> pause [label="Yes"];
+  pause -> fill [label="Resume"];
+  challenge -> ready [label="No"];
+  ready -> submitApproval;
+  submitApproval -> ready [label="No"];
+  submitApproval -> submit [label="Yes"];
+}

@@ -1,14 +1,8 @@
 import { adminAuth } from "@/lib/firebase/admin";
 import { getServerBetaAccessMode } from "@/lib/beta/server";
+import { HttpError } from "@/lib/http-error";
 
-export class HttpError extends Error {
-  status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
+export { HttpError } from "@/lib/http-error";
 
 export async function verifyIdToken(req: Request) {
   const authHeader =

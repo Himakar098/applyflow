@@ -30,10 +30,14 @@ interface AutoApplyConfig {
   };
   attachResume: boolean;
   attachOtherDocs: boolean;
-  autoSubmit: boolean;
+  submissionMode: "review_before_submit";
   notifyOnTasksPending: boolean;
   weeklyReviewEmail: boolean;
 }
+
+type LegacyStoredAutoApplyConfig = Partial<AutoApplyConfig> & {
+  autoSubmit?: unknown;
+};
 
 const WORK_MODES = [
   { value: "remote", label: "Remote" },
@@ -54,10 +58,25 @@ const DEFAULT_CONFIG: AutoApplyConfig = {
   },
   attachResume: true,
   attachOtherDocs: false,
-  autoSubmit: false,
+  submissionMode: "review_before_submit",
   notifyOnTasksPending: true,
   weeklyReviewEmail: true,
 };
+
+function normalizeStoredConfig(stored: LegacyStoredAutoApplyConfig): AutoApplyConfig {
+  const { autoSubmit: legacyAutoSubmit, ...safeStored } = stored;
+  void legacyAutoSubmit;
+
+  return {
+    ...DEFAULT_CONFIG,
+    ...safeStored,
+    filters: {
+      ...DEFAULT_CONFIG.filters,
+      ...safeStored.filters,
+    },
+    submissionMode: "review_before_submit",
+  };
+}
 
 export default function AutoApplySettingsPage() {
   const { user } = useAuth();
@@ -75,7 +94,7 @@ export default function AutoApplySettingsPage() {
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
-        setConfig(docSnap.data() as AutoApplyConfig);
+        setConfig(normalizeStoredConfig(docSnap.data() as LegacyStoredAutoApplyConfig));
       }
     } catch (error) {
       console.error("Error fetching config:", error);
@@ -98,7 +117,10 @@ export default function AutoApplySettingsPage() {
     try {
       const db = getFirestore();
       const docRef = doc(db, `users/${user.uid}/settings`, "auto-apply");
-      await setDoc(docRef, config);
+      await setDoc(docRef, {
+        ...config,
+        submissionMode: "review_before_submit",
+      });
 
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -121,9 +143,9 @@ export default function AutoApplySettingsPage() {
     <div className="space-y-6 p-6 max-w-2xl">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Auto-Apply Settings</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Assisted Apply Settings</h1>
         <p className="text-gray-600">
-          Configure how ApplyFlow will automatically apply to jobs on your behalf
+          Configure which jobs ApplyFlow prepares for your review
         </p>
       </div>
 
@@ -132,9 +154,9 @@ export default function AutoApplySettingsPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Auto-Apply Status</CardTitle>
+              <CardTitle>Assisted Preparation Status</CardTitle>
               <CardDescription>
-                Enable or disable automatic job applications
+                Enable or disable queued application preparation
               </CardDescription>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -157,7 +179,7 @@ export default function AutoApplySettingsPage() {
         <CardHeader>
           <CardTitle className="text-base">Scoring Threshold</CardTitle>
           <CardDescription>
-            Only apply to jobs with a match score above this threshold
+            Only prepare jobs with a match score above this threshold
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -188,12 +210,12 @@ export default function AutoApplySettingsPage() {
         <CardHeader>
           <CardTitle className="text-base">Daily Application Limit</CardTitle>
           <CardDescription>
-            Maximum number of applications per day
+            Maximum number of applications to prepare per day
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <Label htmlFor="daily-limit">Applications per day</Label>
+            <Label htmlFor="daily-limit">Applications prepared per day</Label>
             <Input
               id="daily-limit"
               type="number"
@@ -293,34 +315,22 @@ export default function AutoApplySettingsPage() {
       {/* Submission Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Form Submission</CardTitle>
+          <CardTitle className="text-base">Final Submission</CardTitle>
           <CardDescription>
-            How should we handle form submission?
+            Every employer application stops for your review
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-red-50 border border-red-200 rounded p-3 text-xs text-red-800 mb-4">
-            <AlertCircle className="w-4 h-4 inline mr-1" />
-            <strong>Important:</strong> Only enable auto-submit if you&apos;re
-            comfortable with applications being submitted automatically
-          </div>
-          <div className="flex items-start gap-2">
-            <Checkbox
-              id="auto-submit"
-              checked={config.autoSubmit}
-              onCheckedChange={(checked) =>
-                setConfig({ ...config, autoSubmit: Boolean(checked) })
-              }
-            />
-            <div>
-              <Label htmlFor="auto-submit" className="cursor-pointer font-medium">
-                Auto-submit forms
-              </Label>
-              <p className="text-xs text-gray-600 mt-1">
-                Automatically click submit if form is fully filled and no
-                challenges detected
-              </p>
+          <div className="rounded border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+            <div className="flex items-center gap-2 font-medium">
+              <CheckCircle2 className="h-4 w-4" />
+              Review before submit is always on
             </div>
+            <p className="mt-2 text-xs leading-5">
+              ApplyFlow can prepare and autofill fields after you start the action,
+              but it never clicks the final Submit, Apply, or Confirm button. Review
+              every field and submit the application yourself on the employer site.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -393,8 +403,8 @@ export default function AutoApplySettingsPage() {
         <CardContent className="text-sm text-gray-700 space-y-2">
           <ul className="list-disc pl-5 space-y-1">
             <li>Start with a higher score threshold (80+) to test the system</li>
-            <li>Begin with 3-5 applications per day to monitor results</li>
-            <li>Enable auto-submit only once you&apos;re confident in the system</li>
+            <li>Begin with 3-5 prepared applications per day to monitor results</li>
+            <li>Review every employer form before submitting it yourself</li>
             <li>Check pending tasks daily to complete CAPTCHAs and uploads</li>
             <li>Record application outcomes to improve future recommendations</li>
           </ul>

@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import type { QueueItem } from "@/lib/auto-apply/queue";
 import { shouldRetry } from "@/lib/auto-apply/queue";
 import type { AutoApplyConfig } from "@/lib/auto-apply/config";
+import { createReviewRequiredQueueUpdate } from "@/lib/auto-apply/submission";
 
 /**
  * Auto-Apply Scheduler
@@ -64,9 +65,7 @@ export async function runScheduler(config: SchedulerConfig = DEFAULT_SCHEDULER_C
         const result = await processQueueItem(item, config);
         stats.processed++;
 
-        if (result.status === "submitted") {
-          stats.successful++;
-        } else if (result.status === "failed") {
+        if (result.status === "failed") {
           stats.failed++;
         } else if (result.status === "manual_action_needed") {
           stats.manualActionNeeded++;
@@ -133,37 +132,28 @@ async function processQueueItem(
       return { status: "pending" }; // Will retry tomorrow
     }
 
-    // TODO: Implement actual application logic here
+    // TODO: Implement supervised browser preparation here
     // 1. Check site reachability
     // 2. Detect form structure
     // 3. Prepare autofill data
-    // 4. Attempt autofill via extension
-    // 5. Handle manual actions or submit
-    // 6. Create job application record
-    // 7. Update queue item status
+    // 4. Ask the user to start autofill in a visible browser
+    // 5. Stop for review and manual final submission
+    // 6. Record an application only after the user confirms the employer result
 
-    // For now, mark as successful (placeholder)
-    const jobApplicationId = `job_${Date.now()}`;
-    await docRef.update({
-      status: "submitted",
-      completedAt: new Date().toISOString(),
-      applicationResult: {
-        success: true,
-        submittedUrl: item.jobUrl,
-        timestamp: new Date().toISOString(),
-        jobApplicationId,
-      },
-    });
+    // The scheduler has not opened or filled an employer form. Never convert
+    // this placeholder into a submission receipt.
+    await docRef.update(createReviewRequiredQueueUpdate());
 
     // Log analytics event
     await logSchedulerEvent(item.userId, {
-      eventType: "auto_apply_submitted",
+      eventType: "auto_apply_review_required",
       queueItemId: item.id,
       company: item.company,
       jobTitle: item.jobTitle,
+      reason: "supervised_browser_action_required",
     });
 
-    return { status: "submitted" };
+    return { status: "manual_action_needed" };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
 

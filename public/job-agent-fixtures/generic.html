@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Junior Data Analyst - Acme Analytics</title>
+    <link rel="stylesheet" href="/job-agent-fixtures/fixture.css" />
+  </head>
+  <body data-portal="generic">
+    <main>
+      <article class="card">
+        <p class="eyebrow" data-company-name>Acme Analytics</p>
+        <h1 data-job-title>Junior Data Analyst</h1>
+        <p class="location" data-job-location>Perth, Western Australia · Hybrid</p>
+        <div data-job-description>
+          <p>
+            Help a small analytics team automate reporting, build practical
+            dashboards, and communicate insights to operational stakeholders.
+          </p>
+        </div>
+      </article>
+
+      <section class="card">
+        <h2>Apply for this role</h2>
+        <form id="generic-application">
+          <div class="fields">
+            <div class="field">
+              <label for="first-name">First name</label>
+              <input id="first-name" name="first_name" autocomplete="given-name" required />
+            </div>
+            <div class="field">
+              <label for="last-name">Last name</label>
+              <input id="last-name" name="last_name" autocomplete="family-name" required />
+            </div>
+            <div class="field">
+              <label for="email">Email address</label>
+              <input id="email" name="email" type="email" autocomplete="email" required />
+            </div>
+            <div class="field">
+              <label for="phone">Phone number</label>
+              <input id="phone" name="phone" type="tel" autocomplete="tel" required />
+            </div>
+            <div class="field wide">
+              <label for="location">Current location</label>
+              <input id="location" name="location" autocomplete="address-level2" required />
+            </div>
+            <div class="field wide">
+              <label for="linkedin">LinkedIn profile</label>
+              <input id="linkedin" name="linkedin" type="url" />
+            </div>
+            <div class="field wide">
+              <label for="resume">Resume or CV</label>
+              <input id="resume" name="resume" type="file" accept=".pdf,.doc,.docx" />
+            </div>
+          </div>
+          <button type="submit">Submit application</button>
+          <p class="success" role="status" id="generic-success">
+            Mock application submitted. No employer was contacted.
+          </p>
+        </form>
+      </section>
+    </main>
+    <script>
+      if (new URLSearchParams(window.location.search).has("preexisting")) {
+        document.getElementById("generic-success").style.display = "block";
+      }
+      document.getElementById("generic-application").addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!new URLSearchParams(window.location.search).has("unconfirmed")) {
+          document.getElementById("generic-success").style.display = "block";
+          event.currentTarget.querySelectorAll("input, button").forEach((element) => {
+            element.hidden = true;
+          });
+        }
+        document.body.dataset.submitted = "true";
+      });
+    </script>
+  </body>
+</html>

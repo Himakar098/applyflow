@@ -117,20 +117,13 @@ function describeRunResult(result) {
     };
   }
 
-  if (result.status === "submitted") {
-    return {
-      message: "Form submitted automatically. Review the result in ApplyFlow.",
-      isError: false,
-    };
-  }
-
   if (result.status === "pending_manual_action") {
     const fileCount = result.filesToUpload?.length || 0;
     return {
       message:
         fileCount > 0
-          ? `Form filled. Upload ${fileCount} required file${fileCount === 1 ? "" : "s"}, then review and submit.`
-          : result.message || "Form filled. Review and submit when ready.",
+          ? `Form filled. Upload ${fileCount} required file${fileCount === 1 ? "" : "s"}, review every field, then submit it yourself.`
+          : result.message || "Form filled. Review every field, then submit it yourself.",
       isError: false,
     };
   }

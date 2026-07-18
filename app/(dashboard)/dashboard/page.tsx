@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 
 import { FirstRunChecklist } from "@/components/onboarding/first-run-checklist";
+import { JobAgentDashboardSummary } from "@/components/job-agent/dashboard-summary";
 import { WelcomeModal } from "@/components/onboarding/welcome-modal";
 import { JobStats } from "@/components/jobs/job-stats";
 import { StatusBadge } from "@/components/jobs/status-badge";
@@ -220,6 +221,8 @@ export default function DashboardPage() {
       ) : (
         <JobStats jobs={jobs} />
       )}
+
+      <JobAgentDashboardSummary />
 
       {!loading && user?.uid ? (
         <FirstRunChecklist

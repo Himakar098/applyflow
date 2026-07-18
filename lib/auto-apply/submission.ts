@@ -1,6 +1,6 @@
 /**
- * Smart Application Submission Logic
- * Handles the process of applying to jobs including form detection, filling, and submission
+ * Assisted application preparation logic.
+ * Final submission is always a user action.
  */
 
 export type SubmissionStatus = "success" | "failed" | "pending_manual_action";
@@ -70,57 +70,51 @@ export interface FormDetectionResult {
 }
 
 /**
- * Checks if a site is reachable and application page exists
+ * Builds the only safe queue update for scheduler work that has not been
+ * completed in a supervised browser.
  */
-export async function checkSiteReachability(
-  url: string,
-  timeout: number = 10000
-): Promise<PreSubmissionCheck> {
-  const startTime = Date.now();
-
-  try {
-    const response = await Promise.race([
-      fetch(url, {
-        method: "HEAD",
-        redirect: "follow",
-        headers: {
-          "User-Agent": "Mozilla/5.0 (ApplyFlow by Omnari Group)",
-        },
-      }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Timeout")), timeout)
-      ),
-    ]);
-
-    const responseTime = Date.now() - startTime;
-
-    return {
-      siteReachable: true,
-      responseTime,
-      statusCode: response.status,
-      applicationPageFound: response.status === 200,
-      formDetected: true, // Would need to actually parse HTML
-      estimatedFields: [],
-      detectedChallenges: [],
-    };
-  } catch (error) {
-    return {
-      siteReachable: false,
-      responseTime: Date.now() - startTime,
-      applicationPageFound: false,
-      formDetected: false,
-      estimatedFields: [],
-      detectedChallenges: [
-        error instanceof Error
-          ? error.message
-          : "Unknown error",
-      ],
-    };
-  }
+export function createReviewRequiredQueueUpdate(
+  timestamp: string = new Date().toISOString(),
+) {
+  return {
+    status: "manual_action_needed" as const,
+    applicationResult: {
+      success: false,
+      timestamp,
+    },
+  };
 }
 
 /**
- * Decides whether to attempt auto-submission based on form state
+ * Legacy compatibility pre-check.
+ *
+ * The legacy queue only prepares a manual-review task, so it must not make a
+ * server-side request to an employer-controlled URL. In particular, following
+ * redirects here would turn a stored job URL into an SSRF primitive. Portal
+ * reachability and form state are inspected later in the supervised browser.
+ */
+export async function checkSiteReachability(
+  _url: string,
+  _timeout: number = 10000
+): Promise<PreSubmissionCheck> {
+  return {
+    siteReachable: false,
+    responseTime: 0,
+    applicationPageFound: false,
+    formDetected: false,
+    estimatedFields: [],
+    detectedChallenges: [
+      "Server-side reachability probing is disabled; review the portal in the supervised browser",
+    ],
+  };
+}
+
+/**
+ * Legacy compatibility gate for callers that previously requested auto-submit.
+ *
+ * Automatic final submission is intentionally unavailable. The function still
+ * reports detected blockers so callers can prepare an accurate manual-review
+ * task, but it always returns shouldSubmit: false.
  */
 export function shouldAttemptAutoSubmit(
   formState: FormDetectionResult,
@@ -131,17 +125,17 @@ export function shouldAttemptAutoSubmit(
   reasons: string[];
   requiredManualActions: ManualActionType[];
 } {
-  const reasons: string[] = [];
+  const reasons: string[] = [
+    "Automatic final submission is disabled; user review and manual submission are required",
+  ];
   const requiredManualActions: ManualActionType[] = [];
 
-  if (!autoSubmitEnabled) {
-    reasons.push("Auto-submit is disabled");
-    return { shouldSubmit: false, reasons, requiredManualActions };
+  if (autoSubmitEnabled) {
+    reasons.push("Legacy auto-submit preference was ignored");
   }
 
   if (!formState.detected) {
     reasons.push("Application form not detected");
-    return { shouldSubmit: false, reasons, requiredManualActions };
   }
 
   // Check for blocking challenges
@@ -162,24 +156,14 @@ export function shouldAttemptAutoSubmit(
     requiredManualActions.push("file_upload");
   }
 
-  // If manual actions found and not allowed, can't submit
+  // Keep the legacy argument useful for diagnostics, but never use it to
+  // authorize a final submission.
   if (requiredManualActions.length > 0 && !allowManualActions) {
-    reasons.push("Cannot auto-submit due to required manual actions");
-    return { shouldSubmit: false, reasons, requiredManualActions };
+    reasons.push("Detected blockers must be resolved by the user");
   }
 
-  // If we can submit (no blockers or manual actions allowed)
-  if (requiredManualActions.length === 0) {
-    return { shouldSubmit: true, reasons: ["All required fields detectable"], requiredManualActions };
-  }
-
-  // If manual actions allowed, we can still submit them first
-  if (allowManualActions) {
-    return {
-      shouldSubmit: true,
-      reasons: ["Will create manual tasks for challenges"],
-      requiredManualActions,
-    };
+  if (!requiredManualActions.includes("form_review")) {
+    requiredManualActions.push("form_review");
   }
 
   return { shouldSubmit: false, reasons, requiredManualActions };

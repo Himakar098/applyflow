@@ -82,4 +82,22 @@ test.describe("authenticated smoke", () => {
 
     await expect(page.getByRole("heading", { name: "Results" })).toBeVisible();
   });
+
+  test("seeded supervised Job Agent workspace renders", async ({ page }) => {
+    await page.goto("/job-agent");
+    await expect(page.getByRole("heading", { name: /Prepare stronger applications without giving up control/i })).toBeVisible();
+    await expect(page.getByText("Final submission always requires a separate approval", { exact: false })).toBeVisible();
+
+    await page.goto("/jobs/seed-ai-engineer");
+    await expect(page.getByRole("heading", { name: "Applied AI Engineer" })).toBeVisible();
+    await expect(page.getByText("Deterministic rules run before any model-based fit advice.")).toBeVisible();
+
+    await page.goto("/applications/seed-application-in-progress");
+    await expect(page.getByRole("heading", { name: "Applied AI Engineer" })).toBeVisible();
+    await expect(page.getByText("Autofill and final submission are two separate approvals.")).toBeVisible();
+
+    await page.goto("/applications/seed-application-in-progress/autofill");
+    await expect(page.getByRole("heading", { name: /Inspect, review, autofill, then stop before submission/i })).toBeVisible();
+    await expect(page.getByText("Separate per-application approval. Never implied by autofill approval.")).toBeVisible();
+  });
 });

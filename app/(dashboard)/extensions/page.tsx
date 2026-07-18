@@ -139,7 +139,7 @@ export default function ExtensionsPage() {
             <div className="rounded-xl border border-white/60 bg-white/70 p-4">
               <p className="text-sm font-semibold text-foreground">Keeps you in control</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                ApplyFlow does not auto-submit silently. You review the form, upload files manually if needed, then confirm.
+                The extension never presses the final Submit, Apply, or Confirm button. You review and submit the employer form yourself.
               </p>
             </div>
             <div className="rounded-xl border border-white/60 bg-white/70 p-4">
@@ -307,8 +307,8 @@ export default function ExtensionsPage() {
             <p className="mt-1">Open the employer application page, paste or use saved context, then run autofill.</p>
           </div>
           <div className="rounded-xl border border-white/60 bg-white/70 p-4 text-sm text-muted-foreground">
-            <p className="font-semibold text-foreground">4. Confirm submit</p>
-            <p className="mt-1">After review and submission, mark the job as Applied and remove it from recommendations.</p>
+            <p className="font-semibold text-foreground">4. Submit and record</p>
+            <p className="mt-1">Review and submit on the employer site yourself, then mark the job as Applied.</p>
           </div>
         </CardContent>
         <CardContent className="pt-0">

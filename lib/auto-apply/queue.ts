@@ -51,7 +51,7 @@ export interface QueueItem {
 
   // Configuration used
   configSnapshot?: {
-    autoSubmit: boolean;
+    submissionMode: "review_before_submit";
     attachResume: boolean;
   };
 }

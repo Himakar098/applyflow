@@ -2,11 +2,17 @@
   "name": "applyflow",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run tests/job-agent tests/browser-bridge",
+    "test:integration": "vitest run tests/integration",
     "test:pdf-extract": "node scripts/test-pdf-extract.mjs",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
@@ -16,8 +22,14 @@
     "launch:check": "node scripts/launch-readiness.mjs",
     "firebase:deploy": "firebase deploy --project applyflow-c9741 --only firestore:rules,firestore:indexes,storage",
     "firebase:emulators": "firebase emulators:start",
-    "firebase:seed": "node --env-file=.env.local scripts/seed-firebase-emulators.mjs",
-    "firebase:check": "node scripts/check-firebase-config.mjs"
+    "firebase:seed": "node --env-file=.env.local scripts/seed-firebase-emulators.mjs && tsx --env-file=.env.local scripts/seed-job-agent.ts",
+    "firebase:check": "node scripts/check-firebase-config.mjs",
+    "db:migrate": "npm run firebase:check",
+    "db:seed": "npm run firebase:seed",
+    "browser:install": "playwright install chromium",
+    "browser:worker": "node --env-file-if-exists=.env.local --import tsx packages/browser-bridge/src/cli.ts",
+    "documents:sample": "NODE_OPTIONS=--conditions=react-server tsx scripts/generate-job-agent-document-sample.ts",
+    "eval": "tsx evals/run_local.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -32,22 +44,26 @@
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-toast": "^1.2.15",
-    "@sentry/nextjs": "^10.40.0",
+    "@sentry/nextjs": "^10.66.0",
+    "cheerio": "1.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "docx": "^9.7.1",
     "firebase": "^12.8.0",
-    "firebase-admin": "^13.6.0",
+    "firebase-admin": "^14.2.0",
     "framer-motion": "^12.29.2",
     "lucide-react": "^0.563.0",
     "mammoth": "^1.11.0",
-    "next": "^16.1.6",
+    "next": "^16.2.10",
     "openai": "^6.17.0",
     "pdf-parse": "^2.4.5",
+    "pdfkit": "^0.19.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-hook-form": "^7.71.1",
     "recharts": "^3.8.0",
+    "server-only": "^0.0.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "zod": "^4.3.6"
@@ -55,14 +71,25 @@
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@types/node": "^20",
+    "@types/pdfkit": "^0.17.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.20",
     "eslint": "^9",
-    "eslint-config-next": "^16.1.6",
-    "postcss": "^8.4.47",
+    "eslint-config-next": "^16.2.10",
+    "playwright": "^1.58.2",
+    "postcss": "^8.5.19",
     "tailwindcss": "^3.4.14",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5"
+    "tsx": "^4.23.1",
+    "typescript": "^5",
+    "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "postcss": "$postcss",
+    "uuid": "11.1.1",
+    "minimatch@3.1.5": {
+      "brace-expansion": "1.1.13"
+    }
   }
 }

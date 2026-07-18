@@ -150,9 +150,9 @@ export default function AutoApplyDashboard() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Auto-Apply Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Assisted Apply Dashboard</h1>
           <p className="text-gray-600">
-            Monitor your automatic job applications and pending tasks
+            Monitor applications prepared for your review and pending tasks
           </p>
         </div>
         <div className="flex gap-2">
@@ -178,20 +178,20 @@ export default function AutoApplyDashboard() {
             {enabled ? (
               <>
                 <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
-                <span className="font-semibold">Auto-Apply is Active</span>
+                <span className="font-semibold">Assisted preparation is active</span>
               </>
             ) : (
               <>
                 <div className="w-3 h-3 rounded-full bg-gray-400"></div>
                 <span className="font-semibold text-gray-700">
-                  Auto-Apply is Disabled
+                  Assisted preparation is disabled
                 </span>
               </>
             )}
           </div>
           {!enabled && (
             <Link href="/dashboard/auto-apply/settings">
-              <Button size="sm">Enable Auto-Apply</Button>
+              <Button size="sm">Enable Assisted Preparation</Button>
             </Link>
           )}
         </CardContent>
@@ -302,7 +302,7 @@ export default function AutoApplyDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Activity (Last 7 Days)</CardTitle>
-            <CardDescription>Daily application submissions</CardDescription>
+            <CardDescription>Daily submissions you confirmed</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -341,7 +341,7 @@ export default function AutoApplyDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Recent Applications</CardTitle>
-          <CardDescription>Your last 10 auto-applied jobs</CardDescription>
+          <CardDescription>Your last 10 assisted applications</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-gray-500">
@@ -362,7 +362,7 @@ export default function AutoApplyDashboard() {
               Update your application outcomes (rejected, interview, offer) to improve future recommendations
             </li>
             <li>
-              Adjust your auto-apply settings if you&apos;re getting too many unrelated jobs
+              Adjust your assisted-apply settings if you&apos;re getting too many unrelated jobs
             </li>
             <li>Check back regularly to complete CAPTCHA challenges and file uploads</li>
           </ul>

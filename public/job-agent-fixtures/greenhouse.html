@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Graduate AI Engineer - Harbour Labs</title>
+    <link rel="stylesheet" href="/job-agent-fixtures/fixture.css" />
+  </head>
+  <body data-portal="greenhouse">
+    <main>
+      <article class="card">
+        <p class="eyebrow company-name" data-company-name>Harbour Labs</p>
+        <h1 class="app-title" data-job-title>Graduate AI Engineer</h1>
+        <p class="location" data-job-location>Perth, WA</p>
+        <div id="content" data-job-description>
+          Build useful language and speech workflows with Python and TypeScript,
+          alongside a supportive Australian engineering team.
+        </div>
+      </article>
+      <section class="card">
+        <h2>Greenhouse-style application</h2>
+        <form id="application_form">
+          <div class="fields">
+            <div class="field">
+              <label for="gh-first">First name</label>
+              <input id="gh-first" name="first_name" required />
+            </div>
+            <div class="field">
+              <label for="gh-last">Last name</label>
+              <input id="gh-last" name="last_name" required />
+            </div>
+            <div class="field">
+              <label for="gh-email">Email</label>
+              <input id="gh-email" name="email" type="email" required />
+            </div>
+            <div class="field">
+              <label for="gh-phone">Phone</label>
+              <input id="gh-phone" name="phone" type="tel" required />
+            </div>
+            <div class="field wide">
+              <label for="gh-rights">Do you have full working rights in Australia?</label>
+              <select id="gh-rights" name="work_rights" required>
+                <option value="">Select an answer</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div class="field wide">
+              <label for="gh-sponsor">Will you now or in future require sponsorship?</label>
+              <select id="gh-sponsor" name="requires_sponsorship" required>
+                <option value="">Select an answer</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div class="field wide">
+              <label for="gh-gender">Gender (optional)</label>
+              <select id="gh-gender" name="gender">
+                <option value="">Prefer not to answer here</option>
+                <option>Woman</option>
+                <option>Man</option>
+                <option>Non-binary</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit">Submit application</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

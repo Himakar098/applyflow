@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Workday-like safety fixture</title>
+    <link rel="stylesheet" href="/job-agent-fixtures/fixture.css" />
+  </head>
+  <body data-portal="workday">
+    <main>
+      <article class="card">
+        <p class="eyebrow" data-company-name>Example Enterprise</p>
+        <h1 data-job-title>Junior Software Engineer</h1>
+        <p class="location" data-job-location>Perth, WA</p>
+        <p data-job-description>
+          This detection-only fixture demonstrates a portal that must remain
+          manual until its adapter is implemented and reviewed.
+        </p>
+      </article>
+      <section class="card">
+        <h2>Workday-like application</h2>
+        <p class="warning">
+          The bridge should detect this portal and pause. It must not fall back
+          to generic autofill.
+        </p>
+        <form>
+          <div class="fields">
+            <div class="field">
+              <label for="wd-first">First name</label>
+              <input id="wd-first" name="firstName" required />
+            </div>
+            <div class="field">
+              <label for="wd-last">Last name</label>
+              <input id="wd-last" name="lastName" required />
+            </div>
+            <div class="field wide">
+              <label for="wd-passport">Passport number</label>
+              <input id="wd-passport" name="passportNumber" required />
+            </div>
+            <div class="field wide">
+              <label for="wd-citizen">Are you an Australian citizen?</label>
+              <select id="wd-citizen" name="citizenship" required>
+                <option value="">Select</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div class="field wide">
+              <label for="wd-gender">Gender</label>
+              <select id="wd-gender" name="gender">
+                <option value="">Select</option>
+                <option>Prefer not to say</option>
+              </select>
+            </div>
+            <div class="field wide">
+              <label class="choice" for="wd-declare">
+                <input id="wd-declare" name="legalDeclaration" type="checkbox" required />
+                I declare that the information is accurate
+              </label>
+            </div>
+          </div>
+          <div class="warning captcha" data-sitekey="local-fixture-only">
+            Complete the CAPTCHA manually (fixture — no real challenge).
+          </div>
+          <button type="submit">Submit application</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

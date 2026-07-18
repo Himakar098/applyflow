@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, Loader2 } from "lucide-react";
 
 import { ProfileWizard } from "@/components/profile/profile-wizard";
+import { AgentProfilePanel } from "@/components/job-agent/agent-profile-panel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -124,6 +125,8 @@ export default function ProfilePage() {
           ) : null}
         </CardContent>
       </Card>
+
+      <AgentProfilePanel />
     </div>
   );
 }

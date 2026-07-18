@@ -51,7 +51,7 @@ await db.doc(`users/${uid}`).set(
   { merge: true },
 );
 
-await db.doc(`users/${uid}/profile/current`).set({
+const legacyProfile = {
   fullName: "ApplyFlow Demo User",
   email: seedEmail,
   location: "Perth, WA",
@@ -104,10 +104,16 @@ await db.doc(`users/${uid}/profile/current`).set({
     },
   ],
   updatedAt: now,
+};
+
+await db.doc(`users/${uid}/profile/current`).set({
+  profileJson: legacyProfile,
+  resumeText: "",
+  updatedAt: new Date(),
 });
 
 await db.doc(`users/${uid}/settings/auto-apply`).set({
-  enabled: true,
+  enabled: false,
   minScore: 75,
   maxApplicationsPerDay: 5,
   filters: {
@@ -119,15 +125,15 @@ await db.doc(`users/${uid}/settings/auto-apply`).set({
   },
   attachResume: true,
   attachOtherDocs: false,
-  autoSubmit: false,
+  submissionMode: "review_before_submit",
   notifyOnTasksPending: true,
   weeklyReviewEmail: false,
 });
 
 await db.doc(`users/${uid}/analytics/auto-apply-${dateKey}`).set({
   events: {
-    auto_apply_submitted: [
-      { company: "BHP", jobTitle: "Operations Analyst", createdAt: now },
+    assisted_autofill_prepared: [
+      { company: "Example Co", jobTitle: "Operations Analyst", createdAt: now },
     ],
     manual_task_created: [
       { company: "Rio Tinto", jobTitle: "Business Analyst", createdAt: now },

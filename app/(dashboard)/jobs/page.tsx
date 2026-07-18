@@ -8,6 +8,7 @@ import Link from "next/link";
 import { JobForm } from "@/components/jobs/job-form";
 import { JobStats } from "@/components/jobs/job-stats";
 import { JobTable } from "@/components/jobs/job-table";
+import { JobAgentJobsPanel } from "@/components/job-agent/job-agent-jobs-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -304,6 +305,8 @@ export default function JobsPage() {
       </div>
 
       {loading ? <Skeleton className="h-24 w-full rounded-xl" /> : <JobStats jobs={jobs} />}
+
+      <JobAgentJobsPanel />
 
       <Card className="surface-card">
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
